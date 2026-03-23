@@ -1,0 +1,19 @@
+{
+  "device": "cuda",
+  "best_model_by_pr_auc": "catboost",
+  "best_model_pr_auc": 0.71145,
+  "models_compared": [
+    "catboost",
+    "catboost_best_deep_average",
+    "catboost_top2_deep_average",
+    "deep_average_top3",
+    "deep_average_top2",
+    "transformer_encoder",
+    "transformer_encoder_wide",
+    "transformer_encoder_long",
+    "gru_attention",
+    "deep_average_all",
+    "tcn"
+  ],
+  "top_deep_model_by_validation_pr_auc": "transformer_encoder"
+}

@@ -1,0 +1,12 @@
+{
+  "best_model": "catboost_gpu_subsample_train80",
+  "best_family": "catboost_retrain80",
+  "best_holdout_pr_auc": 0.732291,
+  "best_holdout_roc_auc": 0.962099,
+  "best_catboost_candidate": "catboost_gpu_subsample",
+  "top_deep_models_by_validation_pr_auc": [
+    "transformer_encoder",
+    "transformer_encoder_wide",
+    "transformer_encoder_long"
+  ]
+}

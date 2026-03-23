@@ -1,0 +1,12 @@
+{
+  "device": "cuda",
+  "train_rows": 204434,
+  "val_rows": 29058,
+  "holdout_rows": 59756,
+  "train_episodes": 4900,
+  "val_episodes": 700,
+  "holdout_episodes": 1400,
+  "default_max_seq_len": 24,
+  "default_batch_size": 256,
+  "pos_weight": 17.290597
+}
