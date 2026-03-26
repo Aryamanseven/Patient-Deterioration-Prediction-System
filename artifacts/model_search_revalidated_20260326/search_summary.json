@@ -1,0 +1,65 @@
+{
+  "search_runtime_environment": {
+    "device": "cpu",
+    "thread_count": -1
+  },
+  "dataset_summary": {
+    "rows": 293248,
+    "episodes": 7000,
+    "positive_rate": 0.05405,
+    "development_rows": 233492,
+    "holdout_rows": 59756,
+    "development_episodes": 5600,
+    "holdout_episodes": 1400
+  },
+  "screening": {
+    "candidate_count": 15,
+    "screen_repeats": 1,
+    "screen_episode_fraction": 0.2
+  },
+  "best_observed_model": {
+    "model": "catboost_gpu_subsample_train80",
+    "family": "repo_saved::catboost_retrain80",
+    "source": "saved_repo_artifacts",
+    "holdout_pr_auc": 0.732291,
+    "holdout_roc_auc": 0.962099,
+    "holdout_brier": 0.027866
+  },
+  "best_revalidated_single_model": {
+    "model": "repo_catboost_low_lr",
+    "family": "repo_existing_search",
+    "config": "{\"bagging_temperature\": 0.8, \"bootstrap_type\": \"Bayesian\", \"border_count\": 254, \"depth\": 8, \"iterations\": 2000, \"l2_leaf_reg\": 6.0, \"learning_rate\": 0.025, \"random_strength\": 0.4}",
+    "screen_train_pr_auc_mean": 0.815145,
+    "screen_val_pr_auc_mean": 0.587073,
+    "screen_val_pr_auc_std": 0.0,
+    "screen_val_roc_auc_mean": 0.943619,
+    "screen_val_brier_mean": 0.052712,
+    "screen_overfit_gap": 0.228072,
+    "screen_rank_score": 0.507248,
+    "suggested_iterations": 139,
+    "final_iterations": 458,
+    "refit_train_pr_auc": 0.801855,
+    "calibration_pr_auc": 0.73282,
+    "calibration_roc_auc": 0.969277,
+    "calibration_brier": 0.052447,
+    "refit_overfit_gap": 0.069036,
+    "holdout_pr_auc": 0.699236,
+    "holdout_roc_auc": 0.963682,
+    "holdout_brier": 0.056092,
+    "holdout_prediction_path": "D:/nexus 2026/Patient-Deterioration-Prediction-System/artifacts/model_search_revalidated_20260326/repo_catboost_low_lr_holdout_predictions.csv",
+    "calibration_prediction_path": "D:/nexus 2026/Patient-Deterioration-Prediction-System/artifacts/model_search_revalidated_20260326/repo_catboost_low_lr_calibration_predictions.csv",
+    "checkpoint_path": "D:/nexus 2026/Patient-Deterioration-Prediction-System/artifacts/model_search_revalidated_20260326/repo_catboost_low_lr.cbm",
+    "score_column": "risk_score"
+  },
+  "best_revalidated_ensemble": {
+    "model": "repo_catboost_low_lr_plus_random_catboost_03",
+    "family": "catboost_weighted_average",
+    "holdout_pr_auc": 0.699611,
+    "holdout_roc_auc": 0.963799,
+    "holdout_brier": 0.056387,
+    "calibration_pr_auc": 0.732898,
+    "config": "{\"random_catboost_03\": 0.1, \"repo_catboost_low_lr\": 0.9}",
+    "holdout_prediction_path": "D:/nexus 2026/Patient-Deterioration-Prediction-System/artifacts/model_search_revalidated_20260326/repo_catboost_low_lr_plus_random_catboost_03_holdout_predictions.csv"
+  },
+  "note": "This search reduces overfitting risk with repeated group-aware screening and an untouched outer holdout, but it cannot prove a true global optimum or guarantee zero overfitting."
+}

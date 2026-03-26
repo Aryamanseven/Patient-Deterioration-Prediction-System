@@ -1,0 +1,9 @@
+{
+  "train_pr_auc": 0.9822261730622021,
+  "train_roc_auc": 0.9991805318422767,
+  "train_brier": 0.010617365001772464,
+  "calibration_pr_auc": 0.746511236864668,
+  "calibration_roc_auc": 0.9643485238962775,
+  "calibration_brier": 0.027156847096606596,
+  "pr_auc_gap": 0.23571493619753403
+}

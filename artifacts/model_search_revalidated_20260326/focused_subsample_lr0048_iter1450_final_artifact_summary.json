@@ -1,0 +1,28 @@
+{
+  "model_name": "focused_subsample_lr0048_iter1450",
+  "model_params": {
+    "iterations": 1450,
+    "depth": 8,
+    "learning_rate": 0.048,
+    "l2_leaf_reg": 7.0,
+    "random_strength": 0.6,
+    "bootstrap_type": "Bernoulli",
+    "subsample": 0.88,
+    "border_count": 254
+  },
+  "feature_count": 212,
+  "reference_holdout_metrics": {
+    "holdout_pr_auc": 0.7396128871401634,
+    "holdout_roc_auc": 0.9630869229234397,
+    "holdout_brier": 0.027903839264677807,
+    "watch_threshold": 0.16533940710070974,
+    "alert_threshold": 0.7072099763613172,
+    "watch_precision": 0.4053807569539444,
+    "watch_recall": 0.850175326745298,
+    "alert_precision": 0.7507072135785007,
+    "alert_recall": 0.676761236850494,
+    "alert_f1": 0.7118189438390612
+  },
+  "model_path": "D:/nexus 2026/Patient-Deterioration-Prediction-System/artifacts/model_search_revalidated_20260326/focused_subsample_lr0048_iter1450_full_train_model.cbm",
+  "val_prediction_path": "D:/nexus 2026/Patient-Deterioration-Prediction-System/artifacts/model_search_revalidated_20260326/focused_subsample_lr0048_iter1450_val_predictions.csv"
+}
