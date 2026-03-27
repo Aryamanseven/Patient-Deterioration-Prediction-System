@@ -1,193 +1,233 @@
 # AI-Based Early Warning System for Patient Physiological Deterioration
 
-This repository is the cleaned final submission workspace for the patient deterioration hackathon project. It predicts whether a patient is likely to deteriorate within the next `12` hours from hourly vital-sign and laboratory time-series data, and it keeps only the final four comparison models in the codebase:
+This repository is the final hackathon workspace for predicting whether a patient will deteriorate in the next 12 hours using hourly physiological, laboratory, demographic, and care-context signals.
 
-- `catboost_baseline`
-- `catboost_gpu_subsample_train80`
-- `catboost_transformer_hybrid`
-- `transformer_encoder_wide`
+The final project result is a focused CatBoost model that outperformed the baseline tabular model, the pure transformer benchmark, and the CatBoost + Transformer hybrid benchmark.
 
-This `README.md` is the single up-to-date project guide and also serves as the technical report summary.
+## Final Submission Package
 
-## Deliverables
+Everything the hackathon team needs is already in `submission/`:
 
-### 1. Machine Learning Models
+- `submission/AesCodeNexus_Round1_Submission_Final_Technical_Patient_Deterioration_TeamReady.pptx`
+  Presentation deck for the final submission
+- `submission/Patient_Deterioration_Week1_Official_Submission_Notebook.ipynb`
+  Official notebook to upload to Google Colab or Kaggle and share publicly
+- `submission/week1_official_submission_results.csv`
+  Final four-experiment comparison table used for submission
+- `submission/official_winner_reproduced_metrics.csv`
+  Exact reproduced metrics for the final winning model
+- `submission/focused_subsample_lr0048_iter1450_official_submission_predictions.csv`
+  Blind validation predictions generated with the official winning model
+- `submission/NOTEBOOK_SUBMISSION_GUIDE.md`
+  Short upload and sharing guide for the notebook submission
 
-The final kept models are:
+## Final Result
 
-- `catboost_baseline`: stable dashboard-ready baseline trained by `train_model.py`
-- `catboost_gpu_subsample_train80`: strongest overall model and recommended primary submission
-- `catboost_transformer_hybrid`: tuned CatBoost + best transformer weighted blend
-- `transformer_encoder_wide`: best deep learning model
+The verified final winner in this repository is:
 
-### 2. Data Processing Pipeline
+- Model: `focused_subsample_lr0048_iter1450`
+- PR-AUC: `0.7396128871401634`
+- ROC-AUC: `0.9630869229234396`
+- Brier score: `0.0279038392646778`
+- Watch threshold: `0.16533940710070974`
+- Alert threshold: `0.7072099763613172`
 
-Implemented in `src/physio_warning/features.py` and shared across the training scripts.
+Final model parameters:
 
-Pipeline highlights:
+- `iterations=1450`
+- `depth=8`
+- `learning_rate=0.048`
+- `l2_leaf_reg=7.0`
+- `random_strength=0.6`
+- `bootstrap_type=Bernoulli`
+- `subsample=0.88`
+- `border_count=254`
 
-- reconstructs `episode_id` whenever `hour_from_admission` resets or decreases
-- creates leakage-safe lag features at `1`, `3`, and `6` hours
-- creates rolling mean and rolling standard deviation features over `3`, `6`, and `12` hours
-- adds derived clinical variables such as shock index, mean arterial pressure, pulse pressure, oxygen deficit, and fever/tachypnea/tachycardia excess
-- keeps categorical context such as `oxygen_device`, `gender`, and `admission_type`
+## Where The Final Result Is Proven
 
-### 3. Prototype Interface
+The source of truth for the final winner is the focused-sweep artifact folder:
 
-The Streamlit prototype is in `app.py`.
+- `artifacts/model_search_revalidated_20260326/README.md`
+- `artifacts/model_search_revalidated_20260326/best_overall_summary.json`
+- `artifacts/model_search_revalidated_20260326/aggregate_best_results.csv`
+- `artifacts/model_search_revalidated_20260326/focused_subsample_round2_results.csv`
+- `artifacts/model_search_revalidated_20260326/focused_subsample_round3_results.csv`
+- `artifacts/model_search_revalidated_20260326/focused_subsample_lr0048_iter1450_final_artifact_summary.json`
+- `artifacts/model_search_revalidated_20260326/focused_subsample_lr0048_iter1450_best_holdout_predictions.csv`
+- `artifacts/model_search_revalidated_20260326/focused_subsample_lr0048_iter1450_full_train_model.cbm`
 
-It supports:
+Most important proof files:
 
-- loading the validation dataset, training dataset, or an uploaded CSV
-- episode-level risk visualization
-- vital-sign trend plots
-- risk-band display using watch and alert thresholds
-- a patient snapshot and top model drivers
+- `best_overall_summary.json`
+  Declares `focused_subsample_lr0048_iter1450` as the best model overall
+- `focused_subsample_round2_results.csv`
+  Contains the winning result row
+- `focused_subsample_lr0048_iter1450_final_artifact_summary.json`
+  Stores the exact winning hyperparameters and reference metrics
+- `focused_subsample_lr0048_iter1450_best_holdout_predictions.csv`
+  Reproduces the exact final metrics when rescored
 
-The current dashboard uses the baseline artifact bundle from `train_model.py`, which keeps the live demo simple and stable.
+Important clarification:
 
-### 4. Demo
+- The PPT is a presentation summary, not the source of truth
+- `revalidate_model_search.py` is useful for conservative revalidation, but by itself it does not recreate the final `0.7396` winner in one run
+- The final lift came from the later focused CatBoost sweep preserved in `artifacts/model_search_revalidated_20260326`
 
-The demo flow is:
+## Official Experiment Comparison
 
-1. Train the baseline model with `python train_model.py`
-2. Launch the interface with `streamlit run app.py`
-3. Show risk trends on `dataset/val_no_labels.csv` or `dataset/train.csv`
-4. Compare finalists using `python train_deep_models.py` and `python optimize_best_model.py`
+This is the final four-experiment story for the hackathon submission.
 
-### 5. Technical Report
+| Experiment | Model | PR-AUC | ROC-AUC | Brier | Notes |
+| --- | --- | ---: | ---: | ---: | --- |
+| Exp 2. Final Focused CatBoost Winner | `focused_subsample_lr0048_iter1450` | `0.7396128871401634` | `0.9630869229234396` | `0.0279038392646778` | Final submission model and best overall result |
+| Exp 1. Baseline CatBoost | `catboost` | `0.7114498552976203` | `0.9648972833490874` | `0.04818897155863399` | Strong tabular baseline and dashboard model |
+| Exp 4. CatBoost + Transformer Hybrid | `catboost_gpu_subsample_plus_transformer_encoder` | `0.705305` | `0.963737` | `0.05408` | Weighted hybrid benchmark |
+| Exp 3. Transformer Encoder | `transformer_encoder` | `0.654732` | `0.951335` | `0.074196` | Pure sequence-model benchmark |
 
-The technical report content is captured in this README plus the generated metric summaries:
+Submission-facing copies of these results are saved in:
 
-- `artifacts/deep_models/model_metric_summary.md`
-- `artifacts/model_search/best_model_metric_summary.md`
+- `submission/week1_official_submission_results.csv`
+- `submission/official_winner_reproduced_metrics.csv`
 
-## Repository Layout
+## What The Team Should Demo
 
-- `train_model.py`: trains the baseline CatBoost model and writes dashboard-ready artifacts
-- `train_deep_models.py`: trains the final transformer-based deep model on GPU
-- `optimize_best_model.py`: rebuilds the final four-model comparison bundle
-- `app.py`: Streamlit demo interface
-- `src/physio_warning/features.py`: preprocessing and feature engineering
-- `src/physio_warning/deep_learning.py`: sequence preprocessing and transformer training utilities
-- `dataset/train.csv`: labeled training data
-- `dataset/val_no_labels.csv`: unlabeled evaluation/demo data
+For a live demo, use the Streamlit app:
 
-## Modeling Approach
+```bash
+streamlit run app.py
+```
 
-### Problem framing
+The app now defaults to the final winning model in:
 
-Each row is treated as one hourly patient state, and the target is `deterioration_next_12h`.
+- artifact directory: `artifacts/model_search_revalidated_20260326`
+- model: `focused_subsample_lr0048_iter1450`
+- watch threshold: `0.16533940710070974`
+- alert threshold: `0.7072099763613172`
 
-Because the dataset does not provide a native patient or admission identifier, the pipeline reconstructs an episode boundary when `hour_from_admission` drops or resets. That assumption is used consistently across the baseline, transformer, and tuned-model comparison scripts.
+Demo recommendation:
 
-### Baseline model
+1. Open the app.
+2. Show the risk score and risk band workflow.
+3. Mention that the deployed demo uses the final verified winner, not an older baseline.
 
-The baseline uses `CatBoostClassifier` on engineered tabular features.
+## Official Notebook Submission
 
-Why it works well here:
+If the hackathon form asks for a public Google Colab or Kaggle notebook link, use:
 
-- the dataset is medium-sized and structured
-- vitals, labs, and categorical care-context variables mix naturally in a tabular model
-- the engineered lag and rolling features already capture much of the temporal behavior
+- `submission/Patient_Deterioration_Week1_Official_Submission_Notebook.ipynb`
 
-### Deep learning model
+What this notebook does:
 
-The retained deep model is `transformer_encoder_wide`.
+- explains the dataset and project workflow
+- shows the official four-experiment comparison
+- verifies the final winner metrics exactly
+- loads the retained full-train winning model
+- generates blind validation predictions with the official winner
 
-It uses:
+Related file:
 
-- up to `36` historical hourly steps
-- normalized dynamic physiology features
-- static patient context
-- learned positional embeddings
-- transformer encoder blocks plus attention pooling
+- `submission/NOTEBOOK_SUBMISSION_GUIDE.md`
 
-### Final tuned model
+## Project Workflow
 
-The best overall model is the tuned GPU CatBoost variant:
+The project has four main modeling stages:
 
-- iterations: `1300`
-- depth: `8`
-- learning rate: `0.05`
-- bootstrap: `Bernoulli`
-- subsample: `0.85`
-- `l2_leaf_reg`: `6.0`
-- `random_strength`: `0.7`
+### 1. Baseline CatBoost
 
-This model is retrained on the full `80%` development split before final holdout evaluation.
+- Script: `train_model.py`
+- Purpose: build the baseline tabular patient-deterioration model
+- Main retained outputs:
+  - `artifacts/deterioration_model.cbm`
+  - `artifacts/metadata.json`
+  - `artifacts/holdout_predictions.csv`
 
-### Hybrid model
+### 2. Deep Sequence Models
 
-The hybrid challenger blends the tuned CatBoost model with the best transformer:
+- Script: `train_deep_models.py`
+- Purpose: train deep-learning sequence baselines such as the transformer encoder
+- Main retained outputs:
+  - `artifacts/deep_models/model_metric_details.json`
+  - `artifacts/deep_models/model_metric_summary.md`
+  - `artifacts/deep_models/model_comparison.csv`
 
-- CatBoost weight: `0.57`
-- Transformer weight: `0.43`
+### 3. Hybrid / Ensemble Search
 
-## Final Results
+- Script: `optimize_best_model.py`
+- Purpose: combine tuned CatBoost and deep-model predictions into hybrid benchmarks
+- Main retained outputs:
+  - `artifacts/model_search/best_model_metric_details.json`
+  - `artifacts/model_search/best_model_summary.json`
+  - `artifacts/model_search/best_model_comparison.csv`
 
-The final kept four-model comparison lives in `artifacts/model_search/best_model_comparison.csv`.
+### 4. Focused Revalidation And Final Winner Selection
 
-### `catboost_gpu_subsample_train80`
+- Script family: `revalidate_model_search.py` plus later focused sweep artifacts
+- Purpose: verify the search cleanly and preserve the final winner
+- Main retained outputs:
+  - `artifacts/model_search_revalidated_20260326/best_overall_summary.json`
+  - `artifacts/model_search_revalidated_20260326/aggregate_best_results.csv`
+  - `artifacts/model_search_revalidated_20260326/focused_subsample_round2_results.csv`
+  - `artifacts/model_search_revalidated_20260326/focused_subsample_lr0048_iter1450_full_train_model.cbm`
 
-- ROC-AUC: `0.9624`
-- PR-AUC: `0.7335`
-- Brier score: `0.0277`
-- Watch threshold: `0.1537` with precision `0.3962` and recall `0.8508`
-- Alert threshold: `0.7117` with precision `0.7574`, recall `0.6688`, and F1 `0.7103`
+## Data And Feature Engineering
 
-### `catboost_transformer_hybrid`
+The core modeling pipeline does the following:
 
-- ROC-AUC: `0.9598`
-- PR-AUC: `0.7263`
-- Brier score: `0.0348`
-- Watch threshold: `0.2662` with precision `0.3693` and recall `0.8505`
-- Alert threshold: `0.7642` with precision `0.7679`, recall `0.6707`, and F1 `0.7160`
+- reconstructs `episode_id` from `hour_from_admission` resets
+- engineers lag, delta, rolling, and clinically derived features
+- uses group-aware splitting by episode to reduce leakage
+- ranks models primarily by `PR-AUC`, then `ROC-AUC`
+- keeps `dataset/val_no_labels.csv` for unlabeled inference only
 
-### `catboost_baseline`
+Feature engineering is implemented in:
 
-- ROC-AUC: `0.9649`
-- PR-AUC: `0.7115`
-- Brier score: `0.0482`
-- Watch threshold: `0.4525` with precision `0.4194` and recall `0.8502`
-- Alert threshold: `0.8423` with precision `0.7344`, recall `0.6796`, and F1 `0.7060`
+- `src/physio_warning/features.py`
 
-### `transformer_encoder_wide`
+The final focused winner uses:
 
-- ROC-AUC: `0.9484`
-- PR-AUC: `0.6576`
-- Brier score: `0.0618`
-- Watch threshold: `0.4077` with precision `0.3310` and recall `0.8502`
-- Alert threshold: `0.9062` with precision `0.6664`, recall `0.6427`, and F1 `0.6543`
+- `212` engineered model features
 
-## GPU Revalidation Search
+## Quick Review Path For Hackathon Judges Or Teammates
 
-The March 27, 2026 rerun of `revalidate_model_search.py` was executed on the local NVIDIA GPU and saved to `artifacts/model_search_revalidated_20260327_gpu`.
+If someone is new to the repo, this is the fastest review order:
 
-- runtime: `CatBoost GPU`, device `0`, `19` screened candidates, `2` screening repeats, `50%` screening episode subsample
-- dataset summary: `293,248` rows, `7,000` reconstructed episodes, `5.405%` positive rate
-- best overall observed model in the combined leaderboard remained the saved submission artifact `catboost_gpu_subsample_train80`
-- saved submission artifact metrics: ROC-AUC `0.9624`, PR-AUC `0.7335`, Brier score `0.0277`
-- best newly revalidated single model: `repo_catboost_subsample` with ROC-AUC `0.9635`, PR-AUC `0.7044`, Brier score `0.0521`
-- best newly revalidated ensemble: `repo_catboost_subsample_plus_top3` with ROC-AUC `0.9643`, PR-AUC `0.7052`, Brier score `0.0543`
+1. Read this `README.md`
+2. Open `submission/AesCodeNexus_Round1_Submission_Final_Technical_Patient_Deterioration_TeamReady.pptx`
+3. Open `submission/Patient_Deterioration_Week1_Official_Submission_Notebook.ipynb`
+4. Check `submission/week1_official_submission_results.csv`
+5. Check `submission/official_winner_reproduced_metrics.csv`
+6. If needed, inspect `artifacts/model_search_revalidated_20260326/best_overall_summary.json`
+7. Run `streamlit run app.py` for the live demo
 
-The GPU rerun is intentionally more conservative than the saved repo bundle because it uses repeated screening plus an untouched outer holdout. Its main value is as a robustness check, not as evidence that the saved submission model was surpassed.
+## Final Repository Components
 
-## Recommended Submission Strategy
+Main files worth knowing:
 
-- Primary model: `catboost_gpu_subsample_train80`
-- Backup challenger: `catboost_transformer_hybrid`
-- Deep-learning architecture to present: `transformer_encoder_wide`
-- Dashboard demo model: `catboost_baseline`
+- `app.py`
+  Streamlit demo app using the final winner by default
+- `train_model.py`
+  Baseline CatBoost training
+- `train_deep_models.py`
+  Deep sequence-model training
+- `optimize_best_model.py`
+  Earlier hybrid and ensemble comparison workflow
+- `revalidate_model_search.py`
+  Conservative revalidation sweep over built-in candidate pools
+- `src/physio_warning/features.py`
+  Shared feature engineering
+- `artifacts/model_search_revalidated_20260326/`
+  Final focused winner and proof artifacts
+- `submission/`
+  Final submission bundle
 
-This gives a strong competition story:
+## Important Limitations
 
-- a stable baseline that already performs well
-- a tuned production-style winner
-- a deep-learning branch for temporal modeling depth
-- a hybrid ensemble for additional experimentation
+- `episode_id` is reconstructed because the dataset does not include a native admission identifier
+- `dataset/val_no_labels.csv` has no labels, so true blind-validation benchmarking depends on internal holdout evaluation
+- the final `0.7396` result is a preserved official focused-sweep result, not something recreated by a single baseline rerun cell
+- the root repo still contains older workflows for comparison, but the official final submission story is the one documented in this README
 
-## How To Run
+## Minimal Run Commands
 
 Install dependencies:
 
@@ -195,88 +235,16 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Build the baseline dashboard artifacts:
-
-```bash
-python train_model.py
-```
-
-Launch the Streamlit demo:
+Run the demo:
 
 ```bash
 streamlit run app.py
 ```
 
-Train the final transformer model on your NVIDIA GPU:
+Optional conservative revalidation check:
 
 ```bash
-python train_deep_models.py
+python revalidate_model_search.py --output-dir artifacts/model_search_revalidated_local_check
 ```
 
-Regenerate the final four-model bundle:
-
-```bash
-python optimize_best_model.py
-```
-
-Run the GPU revalidation search:
-
-```bash
-python revalidate_model_search.py --device gpu --gpu-devices 0 --output-dir artifacts/model_search_revalidated_20260327_gpu
-```
-
-If you omit `--device`, the script now defaults to `auto` and will use CatBoost GPU mode when a compatible GPU is available.
-If you omit `--output-dir`, the script now writes into a dated folder such as `artifacts/model_search_revalidated_20260327_gpu` or `artifacts/model_search_revalidated_20260327_cpu` based on the actual runtime device.
-
-## Final Artifacts
-
-### Baseline artifacts
-
-- `artifacts/deterioration_model.cbm`
-- `artifacts/metadata.json`
-- `artifacts/feature_importance.csv`
-- `artifacts/holdout_predictions.csv`
-- `artifacts/val_predictions.csv`
-
-### Deep-learning artifacts
-
-- `artifacts/deep_models/transformer_encoder_wide.pt`
-- `artifacts/deep_models/model_comparison.csv`
-- `artifacts/deep_models/model_metric_summary.md`
-
-### Final comparison artifacts
-
-- `artifacts/model_search/catboost_gpu_subsample_train80.cbm`
-- `artifacts/model_search/catboost_gpu_subsample_train80_holdout_predictions.csv`
-- `artifacts/model_search/catboost_transformer_hybrid_holdout_predictions.csv`
-- `artifacts/model_search/best_model_comparison.csv`
-- `artifacts/model_search/best_model_metric_summary.md`
-- `artifacts/model_search/best_model_summary.json`
-- `artifacts/model_search/final_model_registry.json`
-
-### GPU revalidation artifacts
-
-- `artifacts/model_search_revalidated_20260327_gpu/search_summary.json`
-- `artifacts/model_search_revalidated_20260327_gpu/screening_results.csv`
-- `artifacts/model_search_revalidated_20260327_gpu/finalist_holdout_results.csv`
-- `artifacts/model_search_revalidated_20260327_gpu/ensemble_results.csv`
-- `artifacts/model_search_revalidated_20260327_gpu/combined_comparison.csv`
-
-## Evaluation Protocol
-
-Evaluation uses group-aware splitting by reconstructed episode to avoid leakage across hourly rows from the same admission.
-
-The comparison pipeline uses:
-
-- outer holdout split: `20%`
-- inner validation split from the remaining development data
-- PR-AUC as the main model-selection metric
-- ROC-AUC and Brier score as supporting metrics
-
-## Limitations
-
-- `episode_id` is inferred from hour resets because no native patient/admission identifier is provided
-- the dashboard currently uses the baseline model bundle, not the tuned finalist bundle
-- the hybrid model is a weighted ensemble artifact, not a single standalone checkpoint
-- the dataset appears pre-cleaned and does not stress-test missingness common in real home-monitoring streams
-- this is a clinical decision-support prototype, not a deployment-ready medical device
+This local check is useful for verification, but the official final winner remains the preserved focused CatBoost model in `artifacts/model_search_revalidated_20260326`.

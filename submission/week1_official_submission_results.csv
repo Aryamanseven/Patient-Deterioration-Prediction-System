@@ -1,0 +1,5 @@
+experiment,model_name,pr_auc,roc_auc,brier,notes
+Exp 2. Final Focused CatBoost Winner,focused_subsample_lr0048_iter1450,0.7396128871401635,0.9630869229234397,0.02790383926467781,Official final winner verified from preserved focused-sweep artifacts.
+Exp 1. Baseline CatBoost,catboost,0.7114498552976203,0.9648972833490874,0.04818897155863399,Official baseline result preserved in repo artifacts.
+Exp 4. CatBoost + Transformer Hybrid,catboost_gpu_subsample_plus_transformer_encoder,0.705305,0.963737,0.05408,Official CatBoost + Transformer weighted hybrid benchmark.
+Exp 3. Transformer Encoder,transformer_encoder,0.654732,0.951335,0.074196,Official deep-learning benchmark from preserved comparison outputs.

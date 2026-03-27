@@ -65,4 +65,4 @@ No external data was used.
 - `focused_subsample_lr0048_iter1450_overfit_check.json`: compact overfitting check
 - `search_summary.json`: compact search metadata and outcome summary
 
-Intermediate scratch files and duplicate prediction dumps were intentionally removed to keep the repo submission-friendly. The full search can be regenerated with `python revalidate_model_search.py`.
+Intermediate scratch files and duplicate prediction dumps were intentionally removed to keep the repo submission-friendly. The current `revalidate_model_search.py` script reproduces the base revalidation search outputs, but the final `0.739613` winner in this folder depends on the later focused sweep artifacts preserved here.

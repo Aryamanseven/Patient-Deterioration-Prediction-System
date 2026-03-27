@@ -1,0 +1,2 @@
+model_name,holdout_pr_auc,holdout_roc_auc,holdout_brier,watch_threshold,alert_threshold,source_file
+focused_subsample_lr0048_iter1450,0.7396128871401635,0.9630869229234397,0.02790383926467781,0.16533940710070974,0.7072099763613172,artifacts\model_search_revalidated_20260326\focused_subsample_lr0048_iter1450_best_holdout_predictions.csv
