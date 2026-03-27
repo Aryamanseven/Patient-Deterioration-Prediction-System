@@ -1,99 +1,150 @@
 # AI-Based Early Warning System for Patient Physiological Deterioration
 
-This project builds an early warning system for predicting whether a patient is likely to physiologically deteriorate within the next 12 hours using hourly vital-sign and lab time-series data. It includes:
+This repository is the cleaned final submission workspace for the patient deterioration hackathon project. It predicts whether a patient is likely to deteriorate within the next `12` hours from hourly vital-sign and laboratory time-series data, and it keeps only the final four comparison models in the codebase:
 
-- a CatBoost-based machine learning model
-- a GPU-ready deep learning comparison pipeline
-- a preprocessing and feature-engineering pipeline
-- saved baseline predictions for `val_no_labels.csv`
-- a Streamlit dashboard for visualizing episodes and predicted risk
+- `catboost_baseline`
+- `catboost_gpu_subsample_train80`
+- `catboost_transformer_hybrid`
+- `transformer_encoder_wide`
 
-The repository is intentionally kept slim. Bulky experiment outputs, training logs, Python caches, and extra model artifacts are generated locally when needed and are not committed by default. The tracked model assets keep two comparison anchors in the repo: the baseline dashboard model and the best CatBoost search result, `catboost_gpu_subsample_train80`.
+This `README.md` is the single up-to-date project guide and also serves as the technical report summary.
 
-## Project Structure
+## Deliverables
 
-- `train_model.py`: trains the model, evaluates it on a group-aware holdout split, and saves artifacts
-- `train_deep_models.py`: trains `TCN`, `GRU+Attention`, and `Transformer Encoder` sequence models on GPU and compares them against the CatBoost baseline
-- `optimize_best_model.py`: tunes GPU CatBoost variants, searches validation-based ensembles, and identifies the strongest overall model
-- `app.py`: launches the dashboard
-- `src/physio_warning/features.py`: episode reconstruction and feature engineering logic
-- `src/physio_warning/deep_learning.py`: sequence preprocessing, PyTorch models, and GPU training utilities
-- `artifacts/`: baseline trained model, metrics, feature importances, and prediction CSVs used by the dashboard
+### 1. Machine Learning Models
+
+The final kept models are:
+
+- `catboost_baseline`: stable dashboard-ready baseline trained by `train_model.py`
+- `catboost_gpu_subsample_train80`: strongest overall model and recommended primary submission
+- `catboost_transformer_hybrid`: tuned CatBoost + best transformer weighted blend
+- `transformer_encoder_wide`: best deep learning model
+
+### 2. Data Processing Pipeline
+
+Implemented in `src/physio_warning/features.py` and shared across the training scripts.
+
+Pipeline highlights:
+
+- reconstructs `episode_id` whenever `hour_from_admission` resets or decreases
+- creates leakage-safe lag features at `1`, `3`, and `6` hours
+- creates rolling mean and rolling standard deviation features over `3`, `6`, and `12` hours
+- adds derived clinical variables such as shock index, mean arterial pressure, pulse pressure, oxygen deficit, and fever/tachypnea/tachycardia excess
+- keeps categorical context such as `oxygen_device`, `gender`, and `admission_type`
+
+### 3. Prototype Interface
+
+The Streamlit prototype is in `app.py`.
+
+It supports:
+
+- loading the validation dataset, training dataset, or an uploaded CSV
+- episode-level risk visualization
+- vital-sign trend plots
+- risk-band display using watch and alert thresholds
+- a patient snapshot and top model drivers
+
+The current dashboard uses the baseline artifact bundle from `train_model.py`, which keeps the live demo simple and stable.
+
+### 4. Demo
+
+The demo flow is:
+
+1. Train the baseline model with `python train_model.py`
+2. Launch the interface with `streamlit run app.py`
+3. Show risk trends on `dataset/val_no_labels.csv` or `dataset/train.csv`
+4. Compare finalists using `python train_deep_models.py` and `python optimize_best_model.py`
+
+### 5. Technical Report
+
+The technical report content is captured in this README plus the generated metric summaries:
+
+- `artifacts/deep_models/model_metric_summary.md`
+- `artifacts/model_search/best_model_metric_summary.md`
+
+## Repository Layout
+
+- `train_model.py`: trains the baseline CatBoost model and writes dashboard-ready artifacts
+- `train_deep_models.py`: trains the final transformer-based deep model on GPU
+- `optimize_best_model.py`: rebuilds the final four-model comparison bundle
+- `app.py`: Streamlit demo interface
+- `src/physio_warning/features.py`: preprocessing and feature engineering
+- `src/physio_warning/deep_learning.py`: sequence preprocessing and transformer training utilities
+- `dataset/train.csv`: labeled training data
+- `dataset/val_no_labels.csv`: unlabeled evaluation/demo data
 
 ## Modeling Approach
 
-The dataset does not include an explicit patient identifier, so the pipeline reconstructs an `episode_id` whenever `hour_from_admission` resets back to `0` or decreases. Each row is then treated as an hourly snapshot within an admission.
+### Problem framing
 
-The model uses:
+Each row is treated as one hourly patient state, and the target is `deterioration_next_12h`.
 
-- current vital signs and lab measurements
-- derived clinical signals such as shock index, pulse pressure, mean arterial pressure, and oxygen deficit
-- leakage-safe lag features using prior values at 1, 3, and 6 hours
-- rolling mean and rolling standard deviation over 3, 6, and 12 hour windows
-- prior care-context signals such as previous oxygen device, nurse alert, and mobility score
+Because the dataset does not provide a native patient or admission identifier, the pipeline reconstructs an episode boundary when `hour_from_admission` drops or resets. That assumption is used consistently across the baseline, transformer, and tuned-model comparison scripts.
 
-CatBoost was chosen because it handles tabular, nonlinear, mixed-type clinical data well and supports categorical features directly.
+### Baseline model
 
-## How To Run
+The baseline uses `CatBoostClassifier` on engineered tabular features.
 
-1. Install dependencies:
+Why it works well here:
 
-```bash
-pip install -r requirements.txt
-```
+- the dataset is medium-sized and structured
+- vitals, labs, and categorical care-context variables mix naturally in a tabular model
+- the engineered lag and rolling features already capture much of the temporal behavior
 
-2. Train the model and generate artifacts:
+### Deep learning model
 
-```bash
-python train_model.py
-```
+The retained deep model is `transformer_encoder_wide`.
 
-3. Launch the dashboard:
+It uses:
 
-```bash
-streamlit run app.py
-```
+- up to `36` historical hourly steps
+- normalized dynamic physiology features
+- static patient context
+- learned positional embeddings
+- transformer encoder blocks plus attention pooling
 
-4. Train and compare the GPU deep learning models:
+### Final tuned model
 
-```bash
-python train_deep_models.py
-```
+The best overall model is the tuned GPU CatBoost variant:
 
-5. Search for the strongest overall model:
+- iterations: `1300`
+- depth: `8`
+- learning rate: `0.05`
+- bootstrap: `Bernoulli`
+- subsample: `0.85`
+- `l2_leaf_reg`: `6.0`
+- `random_strength`: `0.7`
 
-```bash
-python optimize_best_model.py
-```
+This model is retrained on the full `80%` development split before final holdout evaluation.
 
-## Outputs
+### Hybrid model
 
-After training, the root `artifacts/` folder contains the baseline dashboard assets:
+The hybrid challenger blends the tuned CatBoost model with the best transformer:
 
-- `deterioration_model.cbm`
-- `metadata.json`
-- `feature_importance.csv`
-- `holdout_predictions.csv`
-- `val_predictions.csv`
+- CatBoost weight: `0.57`
+- Transformer weight: `0.43`
 
-Optional experiment runs save additional generated outputs that are intentionally gitignored:
+## Final Results
 
-- deep-model checkpoints and per-model prediction files under `artifacts/deep_models/`
-- extra CatBoost search checkpoints and prediction files under `artifacts/model_search/`
-- `catboost_info/` for CatBoost training logs
+The final kept four-model comparison lives in `artifacts/model_search/best_model_comparison.csv`.
 
-The best-model search writes additional artifacts under `artifacts/model_search/`, including:
+### `catboost_gpu_subsample_train80`
 
-- `best_model_comparison.csv`
-- `best_model_summary.json`
-- `best_model_metric_summary.md`
-- tuned CatBoost checkpoints and prediction files
+- ROC-AUC: `0.9624`
+- PR-AUC: `0.7335`
+- Brier score: `0.0277`
+- Watch threshold: `0.1537` with precision `0.3962` and recall `0.8508`
+- Alert threshold: `0.7117` with precision `0.7574`, recall `0.6688`, and F1 `0.7103`
 
-## Evaluation
+### `catboost_transformer_hybrid`
 
-The training script uses a group-aware holdout split by reconstructed episode, which is important to avoid leakage across time steps from the same admission.
+- ROC-AUC: `0.9598`
+- PR-AUC: `0.7263`
+- Brier score: `0.0348`
+- Watch threshold: `0.2662` with precision `0.3693` and recall `0.8505`
+- Alert threshold: `0.7642` with precision `0.7679`, recall `0.6707`, and F1 `0.7160`
 
-Current holdout results from `artifacts/metadata.json`:
+### `catboost_baseline`
 
 - ROC-AUC: `0.9649`
 - PR-AUC: `0.7115`
@@ -101,67 +152,131 @@ Current holdout results from `artifacts/metadata.json`:
 - Watch threshold: `0.4525` with precision `0.4194` and recall `0.8502`
 - Alert threshold: `0.8423` with precision `0.7344`, recall `0.6796`, and F1 `0.7060`
 
-Top model drivers on the holdout run:
+### `transformer_encoder_wide`
 
-- `hour_from_admission`
-- `lactate_delta_3`
-- `spo2_pct`
-- `shock_index`
-- `lactate_delta_6`
-- `spo2_deficit`
-- `respiratory_rate`
-- `creatinine_delta_3`
+- ROC-AUC: `0.9484`
+- PR-AUC: `0.6576`
+- Brier score: `0.0618`
+- Watch threshold: `0.4077` with precision `0.3310` and recall `0.8502`
+- Alert threshold: `0.9062` with precision `0.6664`, recall `0.6427`, and F1 `0.6543`
 
-## Deep Learning Comparison
+## GPU Revalidation Search
 
-The deep learning pipeline uses PyTorch with automatic CUDA detection and trains on rolling windows of the last `24` hours.
+The March 27, 2026 rerun of `revalidate_model_search.py` was executed on the local NVIDIA GPU and saved to `artifacts/model_search_revalidated_20260327_gpu`.
 
-Current comparison results from `artifacts/deep_models/model_comparison.csv`:
+- runtime: `CatBoost GPU`, device `0`, `19` screened candidates, `2` screening repeats, `50%` screening episode subsample
+- dataset summary: `293,248` rows, `7,000` reconstructed episodes, `5.405%` positive rate
+- best overall observed model in the combined leaderboard remained the saved submission artifact `catboost_gpu_subsample_train80`
+- saved submission artifact metrics: ROC-AUC `0.9624`, PR-AUC `0.7335`, Brier score `0.0277`
+- best newly revalidated single model: `repo_catboost_subsample` with ROC-AUC `0.9635`, PR-AUC `0.7044`, Brier score `0.0521`
+- best newly revalidated ensemble: `repo_catboost_subsample_plus_top3` with ROC-AUC `0.9643`, PR-AUC `0.7052`, Brier score `0.0543`
 
-- `CatBoost`: PR-AUC `0.7115`
-- `CatBoost + best deep average`: PR-AUC `0.7083`
-- `CatBoost + top-2 deep average`: PR-AUC `0.7056`
-- `Transformer Encoder`: PR-AUC `0.6547`
-- `Transformer Encoder Wide`: PR-AUC `0.6517`
-- `Transformer Encoder Long`: PR-AUC `0.6459`
-- `GRU + Attention`: PR-AUC `0.6148`
-- `TCN`: PR-AUC `0.3588`
+The GPU rerun is intentionally more conservative than the saved repo bundle because it uses repeated screening plus an untouched outer holdout. Its main value is as a robustness check, not as evidence that the saved submission model was surpassed.
 
-Current takeaway:
+## Recommended Submission Strategy
 
-- `CatBoost` is still the strongest model for this dataset.
-- The baseline `Transformer Encoder` is still the best deep learning candidate after the harder tuning pass.
-- The CatBoost-plus-deep ensembles are competitive, but still do not beat CatBoost on PR-AUC.
-- The clean per-model threshold summary lives in `artifacts/deep_models/model_metric_summary.md`.
+- Primary model: `catboost_gpu_subsample_train80`
+- Backup challenger: `catboost_transformer_hybrid`
+- Deep-learning architecture to present: `transformer_encoder_wide`
+- Dashboard demo model: `catboost_baseline`
 
-## Best Overall Model
+This gives a strong competition story:
 
-The strongest model found so far is the tuned GPU CatBoost retrained on the full `80%` development split:
+- a stable baseline that already performs well
+- a tuned production-style winner
+- a deep-learning branch for temporal modeling depth
+- a hybrid ensemble for additional experimentation
 
-- Model: `catboost_gpu_subsample_train80`
-- ROC-AUC: `0.9621`
-- PR-AUC: `0.7323`
-- Brier score: `0.0279`
-- Watch threshold: `0.1484` with precision `0.3905` and recall `0.8502`
-- Alert threshold: `0.6533` with precision `0.7350`, recall `0.6860`, and F1 `0.7096`
+## How To Run
 
-Tracked model assets:
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Build the baseline dashboard artifacts:
+
+```bash
+python train_model.py
+```
+
+Launch the Streamlit demo:
+
+```bash
+streamlit run app.py
+```
+
+Train the final transformer model on your NVIDIA GPU:
+
+```bash
+python train_deep_models.py
+```
+
+Regenerate the final four-model bundle:
+
+```bash
+python optimize_best_model.py
+```
+
+Run the GPU revalidation search:
+
+```bash
+python revalidate_model_search.py --device gpu --gpu-devices 0 --output-dir artifacts/model_search_revalidated_20260327_gpu
+```
+
+If you omit `--device`, the script now defaults to `auto` and will use CatBoost GPU mode when a compatible GPU is available.
+If you omit `--output-dir`, the script now writes into a dated folder such as `artifacts/model_search_revalidated_20260327_gpu` or `artifacts/model_search_revalidated_20260327_cpu` based on the actual runtime device.
+
+## Final Artifacts
+
+### Baseline artifacts
 
 - `artifacts/deterioration_model.cbm`
 - `artifacts/metadata.json`
 - `artifacts/feature_importance.csv`
 - `artifacts/holdout_predictions.csv`
 - `artifacts/val_predictions.csv`
+
+### Deep-learning artifacts
+
+- `artifacts/deep_models/transformer_encoder_wide.pt`
+- `artifacts/deep_models/model_comparison.csv`
+- `artifacts/deep_models/model_metric_summary.md`
+
+### Final comparison artifacts
+
 - `artifacts/model_search/catboost_gpu_subsample_train80.cbm`
 - `artifacts/model_search/catboost_gpu_subsample_train80_holdout_predictions.csv`
-- `artifacts/model_search/catboost_gpu_subsample_train80_metrics.json`
-- `artifacts/model_search/best_model_summary.json`
+- `artifacts/model_search/catboost_transformer_hybrid_holdout_predictions.csv`
+- `artifacts/model_search/best_model_comparison.csv`
 - `artifacts/model_search/best_model_metric_summary.md`
+- `artifacts/model_search/best_model_summary.json`
+- `artifacts/model_search/final_model_registry.json`
 
-Comparison summaries can stay in the repo, and any removed per-model artifacts can be regenerated locally with `python train_deep_models.py` or `python optimize_best_model.py` when you need them.
+### GPU revalidation artifacts
+
+- `artifacts/model_search_revalidated_20260327_gpu/search_summary.json`
+- `artifacts/model_search_revalidated_20260327_gpu/screening_results.csv`
+- `artifacts/model_search_revalidated_20260327_gpu/finalist_holdout_results.csv`
+- `artifacts/model_search_revalidated_20260327_gpu/ensemble_results.csv`
+- `artifacts/model_search_revalidated_20260327_gpu/combined_comparison.csv`
+
+## Evaluation Protocol
+
+Evaluation uses group-aware splitting by reconstructed episode to avoid leakage across hourly rows from the same admission.
+
+The comparison pipeline uses:
+
+- outer holdout split: `20%`
+- inner validation split from the remaining development data
+- PR-AUC as the main model-selection metric
+- ROC-AUC and Brier score as supporting metrics
 
 ## Limitations
 
-- `episode_id` is inferred from the hour reset assumption, because the dataset does not expose a native patient/admission identifier.
-- The data appears pre-cleaned with no missing values, so the system has not been stress-tested on sparse home-monitoring streams.
-- This is a decision-support prototype, not a clinical-grade alarm system. Thresholds should be clinically validated before real-world use.
+- `episode_id` is inferred from hour resets because no native patient/admission identifier is provided
+- the dashboard currently uses the baseline model bundle, not the tuned finalist bundle
+- the hybrid model is a weighted ensemble artifact, not a single standalone checkpoint
+- the dataset appears pre-cleaned and does not stress-test missingness common in real home-monitoring streams
+- this is a clinical decision-support prototype, not a deployment-ready medical device
