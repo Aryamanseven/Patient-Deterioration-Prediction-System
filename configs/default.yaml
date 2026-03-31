@@ -1,0 +1,130 @@
+# ============================================================
+# PhysioGuard — Default Pipeline Configuration
+# ============================================================
+# This config runs the FULL pipeline:
+#   Data → Features → SSL → Supervised → DL → Ensemble →
+#   XAI → Calibration → FL → DP → DG → Fairness → CV → Export
+#
+# Python 3.10 required. All paths relative to project root.
+# ============================================================
+
+general:
+  seed: 42
+  python_version: "3.10"
+  device: "auto"              # auto-detects CUDA, falls back to CPU
+  run_name: "championship_run"
+
+data:
+  path: "dataset/train.csv"
+  test_size: 0.2
+  max_rows: null              # null = full dataset (293248 rows)
+
+features:
+  use_advanced: true          # 257 features (base + novel)
+  use_clinical_scores: true   # NEWS, MEWS, qSOFA as features
+
+modules:
+  ssl:
+    enabled: true
+    pretext_task: "masked_prediction"
+    mask_ratio: 0.25
+    pretrain_epochs: 50
+    d_model: 128
+    num_heads: 8
+    num_layers: 4
+    learning_rate: 0.0005
+    batch_size: 256
+
+  supervised:
+    enabled: true
+    model_type: "catboost"
+    params:
+      iterations: 5000
+      learning_rate: 0.02
+      depth: 8
+      l2_leaf_reg: 5.0
+      min_child_samples: 30
+      subsample: 0.85
+      colsample_bylevel: 0.7
+      max_bin: 1024
+      grow_policy: "Lossguide"
+      max_leaves: 64
+      bootstrap_type: "Bernoulli"
+      loss_function: "Logloss"
+      eval_metric: "PRAUC"
+      auto_class_weights: "SqrtBalanced"
+      early_stopping_rounds: 500
+      task_type: "CPU"
+      use_best_model: true
+
+  deep_learning:
+    enabled: true
+    model_type: "tcn_transformer"    # "lstm_attention" or "tcn_transformer"
+    use_ssl_weights: true
+    epochs: 150
+    batch_size: 256
+    learning_rate: 0.0005
+    weight_decay: 0.05
+    max_seq_len: 24
+    d_model: 128
+    num_heads: 8
+    num_layers: 4
+    dropout: 0.3
+    patience: 25
+
+  ensemble:
+    enabled: true
+    method: "weighted_blend"         # "weighted_blend" or "stacking"
+    optimize_weights: true
+
+  xai:
+    enabled: true
+    shap_samples: 1000
+    gradcam: true
+    attention_maps: true
+    clinical_comparison: true
+
+  calibration:
+    enabled: true
+    n_bins: 10
+    method: "isotonic"               # "platt" or "isotonic"
+
+  federated_learning:
+    enabled: true
+    clients: 5
+    rounds: 10
+    local_epochs: 3
+    aggregation: "fedavg"
+    partition_method: "dirichlet"
+    alpha: 0.25                      # Dirichlet concentration (lower = more non-IID to simulate harder realistic hospital skews)
+
+  differential_privacy:
+    enabled: true
+    target_epsilon: 8.0
+    target_delta: 1.0e-5
+    max_grad_norm: 1.0
+    noise_multiplier: 1.1
+    epochs: 10
+
+  domain_generalization:
+    enabled: true
+    method: "lodo"
+    domain_column: "admission_type"
+
+  cross_validation:
+    enabled: true
+    n_splits: 5
+
+  fairness:
+    enabled: true
+    protected_attributes:
+      - "gender"
+      - "age_group"
+      - "admission_type"
+
+  deployment:
+    onnx_export: true
+    openvino_convert: true
+
+output:
+  base_dir: "outputs"

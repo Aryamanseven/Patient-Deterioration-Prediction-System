@@ -1,28 +1,47 @@
+# ==============================
+# 🚀 PhysioGuard .gitignore
+# ==============================
+
+# 🛑 1. Huge Datasets (Too big for GitHub)
+dataset/*.csv
+dataset/*.parquet
+
+# 🛑 2. Explosive Output Folders & Old Models
+outputs/
+catboost_info/
+artifacts/model_search/
+artifacts/model_search_*/
+artifacts/deep_models/
+artifacts/*.csv
+
+# 🛑 3. SENSITIVE DATA & JUDGE FILES (NEVER UPLOAD)
+*.xlsx
+*dump*.txt
+Aescode_Round1_Results*
+
+# 🛑 3. Ignore Heavy Completed Models (So your friend doesn't download 5GBs)
+# BUT DO NOT ignore the ssl_checkpoint_latest.pt!
+artifacts/run_*/model/*.pkl
+artifacts/run_*/model/*.cbm
+artifacts/run_*/model/*.pt
+
+# 🛑 4. Logs & Trash
+*.log
+pipeline_error.txt
+error.txt
+error.log
+
+# 🐍 5. Python / Virtual Environment
 __pycache__/
 *.py[cod]
 *$py.class
-
-catboost_info/
-
-artifacts/deep_models/*.pt
-artifacts/deep_models/*_history.csv
-artifacts/deep_models/*_holdout_predictions.csv
-artifacts/deep_models/*_val_predictions.csv
-artifacts/deep_models/ensemble_holdout_predictions.csv
-artifacts/deep_models_preprocessor_smoke.json
-artifacts/model_search/*.cbm
-!artifacts/model_search/catboost_gpu_subsample_train80.cbm
-artifacts/model_search/*_holdout_predictions.csv
-!artifacts/model_search/catboost_gpu_subsample_train80_holdout_predictions.csv
-artifacts/model_search/*_val_predictions.csv
-artifacts/model_search/*_metrics.json
-!artifacts/model_search/catboost_gpu_subsample_train80_metrics.json
-
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .venv/
 venv/
+env/
 
+# 💻 6. System Files
 .DS_Store
 Thumbs.db

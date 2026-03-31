@@ -1,0 +1,105 @@
+data:
+  max_rows: null
+  path: dataset/train.csv
+  test_size: 0.2
+features:
+  use_advanced: true
+  use_clinical_scores: true
+general:
+  device: auto
+  python_version: '3.10'
+  run_name: championship_run
+  seed: 42
+modules:
+  calibration:
+    enabled: true
+    method: isotonic
+    n_bins: 10
+  cross_validation:
+    enabled: true
+    n_splits: 5
+  deep_learning:
+    batch_size: 256
+    d_model: 128
+    dropout: 0.3
+    enabled: true
+    epochs: 150
+    learning_rate: 0.0005
+    max_seq_len: 24
+    model_type: tcn_transformer
+    num_heads: 8
+    num_layers: 4
+    patience: 25
+    use_ssl_weights: true
+    weight_decay: 0.05
+  deployment:
+    onnx_export: true
+    openvino_convert: true
+  differential_privacy:
+    enabled: true
+    epochs: 10
+    max_grad_norm: 1.0
+    noise_multiplier: 1.1
+    target_delta: 1.0e-05
+    target_epsilon: 8.0
+  domain_generalization:
+    domain_column: admission_type
+    enabled: true
+    method: lodo
+  ensemble:
+    enabled: true
+    method: weighted_blend
+    optimize_weights: true
+  fairness:
+    enabled: true
+    protected_attributes:
+    - gender
+    - age_group
+    - admission_type
+  federated_learning:
+    aggregation: fedavg
+    alpha: 0.25
+    clients: 5
+    enabled: true
+    local_epochs: 3
+    partition_method: dirichlet
+    rounds: 10
+  ssl:
+    batch_size: 256
+    d_model: 128
+    enabled: true
+    learning_rate: 0.0005
+    mask_ratio: 0.25
+    num_heads: 8
+    num_layers: 4
+    pretext_task: masked_prediction
+    pretrain_epochs: 50
+  supervised:
+    enabled: true
+    model_type: catboost
+    params:
+      auto_class_weights: SqrtBalanced
+      bootstrap_type: Bernoulli
+      colsample_bylevel: 0.7
+      depth: 8
+      early_stopping_rounds: 500
+      eval_metric: PRAUC
+      grow_policy: Lossguide
+      iterations: 5000
+      l2_leaf_reg: 5.0
+      learning_rate: 0.02
+      loss_function: Logloss
+      max_bin: 1024
+      max_leaves: 64
+      min_child_samples: 30
+      subsample: 0.85
+      task_type: CPU
+      use_best_model: true
+  xai:
+    attention_maps: true
+    clinical_comparison: true
+    enabled: true
+    gradcam: true
+    shap_samples: 1000
+output:
+  base_dir: outputs

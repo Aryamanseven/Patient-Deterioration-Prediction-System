@@ -1,0 +1,122 @@
+# ============================================================
+# PhysioGuard — Quick Smoke Test Configuration
+# ============================================================
+# Runs the FULL pipeline on ~5% of data with tiny models.
+# Purpose: verify every step works end-to-end before a real run.
+# Should complete in ~5-10 minutes on DML.
+# ============================================================
+
+general:
+  seed: 42
+  python_version: "3.10"
+  device: "auto"               # Use DML if available
+  run_name: "quick_test"
+
+data:
+  path: "dataset/train.csv"
+  test_size: 0.2
+  max_rows: 15000              # ~5% of full dataset
+
+features:
+  use_advanced: true
+  use_clinical_scores: true
+
+modules:
+  ssl:
+    enabled: true
+    pretext_task: "masked_prediction"
+    mask_ratio: 0.15
+    pretrain_epochs: 2         # Minimal
+    d_model: 32
+    num_heads: 2
+    num_layers: 1
+    learning_rate: 0.001
+    batch_size: 256
+
+  supervised:
+    enabled: true
+    model_type: "catboost"
+    params:
+      iterations: 100
+      learning_rate: 0.1
+      depth: 6
+      l2_leaf_reg: 3.0
+      min_child_samples: 20
+      subsample: 0.8
+      loss_function: "Logloss"
+      eval_metric: "PRAUC"
+      auto_class_weights: "SqrtBalanced"
+      early_stopping_rounds: 20
+      task_type: "CPU"
+      use_best_model: true
+
+  deep_learning:
+    enabled: true
+    model_type: "tcn_transformer"
+    use_ssl_weights: true
+    epochs: 3                  # Minimal
+    batch_size: 256
+    learning_rate: 0.001
+    weight_decay: 0.01
+    max_seq_len: 12
+    d_model: 32
+    num_heads: 2
+    num_layers: 1
+    dropout: 0.1
+    patience: 2
+
+  ensemble:
+    enabled: true
+    method: "weighted_blend"
+    optimize_weights: true
+
+  xai:
+    enabled: true
+    shap_samples: 100
+    gradcam: true
+    attention_maps: true
+    clinical_comparison: true
+
+  calibration:
+    enabled: true
+    n_bins: 10
+    method: "isotonic"
+
+  federated_learning:
+    enabled: true
+    clients: 3
+    rounds: 2
+    local_epochs: 1
+    aggregation: "fedavg"
+    partition_method: "dirichlet"
+    alpha: 0.5
+
+  differential_privacy:
+    enabled: true
+    target_epsilon: 8.0
+    target_delta: 1.0e-5
+    max_grad_norm: 1.0
+    noise_multiplier: 1.1
+    epochs: 3
+
+  domain_generalization:
+    enabled: true
+    method: "lodo"
+    domain_column: "admission_type"
+
+  cross_validation:
+    enabled: true
+    n_splits: 3
+
+  fairness:
+    enabled: true
+    protected_attributes:
+      - "gender"
+      - "age_group"
+
+  deployment:
+    onnx_export: true
+    openvino_convert: false
+
+output:
+  base_dir: "outputs"
