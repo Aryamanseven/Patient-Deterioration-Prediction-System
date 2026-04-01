@@ -1,38 +1,47 @@
-# ==============================
-# 🚀 PhysioGuard .gitignore
-# ==============================
+# PhysioGuard repository ignore rules
 
-# 🛑 1. Huge Datasets (Too big for GitHub)
-dataset/*.csv
-dataset/*.parquet
-
-# 🛑 2. Explosive Output Folders & Old Models
-outputs/
-catboost_info/
-artifacts/model_search/
-artifacts/model_search_*/
-artifacts/deep_models/
-artifacts/*.csv
-
-# 🛑 3. SENSITIVE DATA & JUDGE FILES (NEVER UPLOAD)
+# -----------------------
+# Local dumps and external sheets
+# -----------------------
 *.xlsx
 *dump*.txt
 Aescode_Round1_Results*
+_tmp_*.py
+*.tmp
+*.temp
 
-# 🛑 3. Ignore Heavy Completed Models (So your friend doesn't download 5GBs)
-# BUT DO NOT ignore the ssl_checkpoint_latest.pt!
-artifacts/run_*/model/*.pkl
-artifacts/run_*/model/*.cbm
-artifacts/run_*/model/*.pt
+# Optional local data exports (keep required CSV inputs committed)
+dataset/*.parquet
+dataset/*.feather
+dataset/raw/
+dataset/external/
 
-# 🛑 4. Logs & Trash
-*.log
-pipeline_error.txt
-error.txt
+# -----------------------
+# Generated training output
+# -----------------------
+outputs/
+catboost_info/
+artifacts/run_*/
+artifacts/*.log
+artifacts/supervisor_python_*.tmp.log
+
+# -----------------------
+# Local archive area
+# -----------------------
+archive/
+
+# -----------------------
+# Local error dumps
+# -----------------------
 error.log
+error.txt
+pipeline_error.txt
 
-# 🐍 5. Python / Virtual Environment
+# -----------------------
+# Python environment/cache
+# -----------------------
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
@@ -41,7 +50,10 @@ __pycache__/
 .venv/
 venv/
 env/
+.ipynb_checkpoints/
 
-# 💻 6. System Files
+# -----------------------
+# OS/editor noise
+# -----------------------
 .DS_Store
 Thumbs.db
