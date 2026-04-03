@@ -8,6 +8,7 @@ opacus
 pyyaml
 streamlit
 plotly
+seaborn
 pytest
 # For production deployment
 onnx

@@ -1,0 +1,35 @@
+{
+  "generated_utc": "2026-04-03T09:55:30.261699+00:00",
+  "final_package": {
+    "copied_files": [
+      "summary.json",
+      "full_sample_metrics.csv",
+      "head_to_head_by_fraction.csv",
+      "winner_by_fraction.csv",
+      "subsample_metrics_summary.csv",
+      "subsample_metrics_detailed.csv"
+    ],
+    "source_dir": "artifacts/timesfm_vs_latest_ensemble_subsample_20260403_094805",
+    "final_dir": "artifacts/benchmark_final"
+  },
+  "cleanup": {
+    "removed_dirs": [
+      "artifacts/benchmark_suite_20260403_075335",
+      "artifacts/subsample_benchmark_latest",
+      "artifacts/timesfm_vs_latest_ensemble_subsample_20260403_092247",
+      "artifacts/timesfm_vs_latest_ensemble_subsample_20260403_093109",
+      "artifacts/timesfm_vs_latest_ensemble_subsample_20260403_094805"
+    ],
+    "removed_files": [
+      "artifacts/benchmark_suite_latest.json",
+      "artifacts/overnight_supervisor.log",
+      "artifacts/timesfm_vs_latest_ensemble_latest.json"
+    ]
+  },
+  "run_config": {
+    "max_eval_rows": 10000,
+    "fractions": "0.05,0.1,0.2,0.3,0.5,0.8",
+    "repeats": 25,
+    "seed": 42
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "generated_utc": "2026-04-03T09:55:29.178638+00:00",
+  "scope": "strict_two_model_latest_ensemble_vs_timesfm_proxy",
+  "inputs": {
+    "run_dir": "artifacts/run_20260401_095900_876038_stage2_fl10_from_recovered_dl",
+    "data_path": "dataset/train.csv",
+    "feature_col": "sepsis_risk_score",
+    "max_context": 128,
+    "batch_size": 128,
+    "fractions": [
+      0.05,
+      0.1,
+      0.2,
+      0.3,
+      0.5,
+      0.8
+    ],
+    "repeats": 25,
+    "seed": 42,
+    "test_size": 0.2,
+    "random_state": 42
+  },
+  "alignment": {
+    "rows": 59756,
+    "labels_match": true,
+    "label_match_rate": 1.0,
+    "positive_rate": 0.052496820402972086,
+    "run_predictions_path": "artifacts/run_20260401_095900_876038_stage2_fl10_from_recovered_dl/predictions.csv"
+  },
+  "evaluation_sampling": {
+    "max_eval_rows": 10000,
+    "used_stratified_downsample": true,
+    "rows_after_sampling": 10000,
+    "sampling_fraction": 0.16734721199544816
+  },
+  "timesfm_coverage": {
+    "rows": 10000,
+    "episodes_with_series": 1400,
+    "missing_episode_rows": 0,
+    "timesfm_constructor_patched": true
+  },
+  "full_sample_metrics": {
+    "latest_ensemble": {
+      "pr_auc": 0.7144769121240221,
+      "roc_auc": 0.9577510742555597,
+      "brier_score": 0.024798223631324744,
+      "n": 10000,
+      "positive_rate": 0.0525
+    },
+    "timesfm_proxy": {
+      "pr_auc": 0.07936019285524942,
+      "roc_auc": 0.6597000628219625,
+      "brier_score": 0.2653918018485898,
+      "n": 10000,
+      "positive_rate": 0.0525
+    },
+    "delta": {
+      "pr_auc_ensemble_minus_timesfm": 0.6351167192687727,
+      "roc_auc_ensemble_minus_timesfm": 0.29805101143359725,
+      "brier_timesfm_minus_ensemble": 0.24059357821726504
+    }
+  },
+  "notes": [
+    "TimeSFM scores here are proxy clinical risk scores derived from one-step univariate forecasts.",
+    "Latest ensemble scores are loaded from run_20260401_095900... predictions and aligned by exact row order check."
+  ]
+}

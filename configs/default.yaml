@@ -26,6 +26,10 @@ features:
 modules:
   ssl:
     enabled: true
+    reuse_existing: false
+    pretrained_weights_path: ""
+    resume_from_checkpoint: true
+    resume_checkpoint_path: ""
     pretext_task: "masked_prediction"
     mask_ratio: 0.25
     pretrain_epochs: 50
@@ -61,6 +65,8 @@ modules:
     enabled: true
     model_type: "tcn_transformer"    # "lstm_attention" or "tcn_transformer"
     use_ssl_weights: true
+    resume_from_checkpoint: true
+    resume_checkpoint_path: ""
     epochs: 150
     batch_size: 256
     learning_rate: 0.0005
@@ -123,8 +129,9 @@ modules:
       - "admission_type"
 
   deployment:
-    onnx_export: true
-    openvino_convert: true
+    enabled: true
+    export_catboost: true
+    export_onnx: true
 
 output:
   base_dir: "outputs"

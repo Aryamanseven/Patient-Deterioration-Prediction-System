@@ -1,10 +1,17 @@
-# Medical Device Deployment Module
+# Deployment Module
 
-Exports our models in a secure, containerized, and ONNX-ready format allowing direct integration with hospital Electronic Health Record (EHR) systems.
+Exports trained artifacts for inference workflows.
 
-## Artifacts Produced
-- `model.onnx`: Optimized ONNX export of deep learning models for CPU/GPU serving.
-- `catboost_model.cbm`: CatBoost deployment binary.
+## Outputs
 
-## Config
-Controlled via `modules.deployment` in `default.yaml`.
+- model/model.cbm (CatBoost)
+- model/dl_model.onnx (optional ONNX export)
+
+## Notes
+
+- Controlled by modules.deployment.enabled.
+- Enable for export-focused runs; disable for faster training-only runs.
+
+## Config section
+
+- modules.deployment

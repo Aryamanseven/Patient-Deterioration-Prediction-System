@@ -1,28 +1,37 @@
 # Core Module
 
-Shared utilities used by **every other module** in the system. Nothing in `models/`, `modules/`, or `pipelines/` imports from anywhere else — they all use `core/`.
+This package contains the shared data and utility foundation used by every pipeline stage.
 
-## Files
+## Files and purpose
 
-| File | Purpose | Used By |
-|---|---|---|
-| `config.py` | Loads and validates YAML configs. Every parameter comes from here. | All pipeline steps |
-| `data_loader.py` | **SINGLE** centralized data loading + splitting. No other module touches the CSV. | `pipelines/steps/step_data.py` |
-| `features.py` | All feature engineering (base 212 + advanced 257 features) | `data_loader.py` |
-| `clinical_scores.py` | NEWS, MEWS, qSOFA score computation | `features.py`, `modules/xai/` |
-| `metrics.py` | All evaluation metrics (ROC-AUC, PR-AUC, Brier, F1, etc.) + threshold optimization | All evaluation steps |
-| `reproducibility.py` | Seed management for Python, NumPy, PyTorch. Deterministic operations. | Pipeline entry point |
-| `logger.py` | Structured logging to file + console | All modules |
+1. config.py
+	Loads YAML, validates required fields, resolves device, and creates run output folders.
 
-## Design Principle
+2. data_loader.py
+	Reads dataset CSV, applies feature engineering, performs group-aware split, and builds sequence datasets.
 
-**No circular imports.** The dependency graph is:
-```
-config.py ← (no deps)
-logger.py ← config.py
-reproducibility.py ← (no deps)
-clinical_scores.py ← (no deps, just pandas/numpy)
-features.py ← clinical_scores.py
-metrics.py ← (no deps, just sklearn)
-data_loader.py ← config.py, features.py, reproducibility.py
-```
+3. features.py
+	Defines engineered feature families and canonical feature column lists.
+
+4. clinical_scores.py
+	Computes bedside-inspired scores (NEWS, MEWS, qSOFA) used as model inputs.
+
+5. metrics.py
+	Computes classification metrics (PR-AUC, ROC-AUC and related diagnostics).
+
+6. reproducibility.py
+	Sets global random seeds for consistent runs.
+
+7. logger.py
+	Unified logging style across pipeline and modules.
+
+## Invariants
+
+1. The split must be group-aware by episode to avoid leakage.
+2. Feature engineering is centralized and reused by all model paths.
+3. Config is the source of truth for optional module enablement.
+
+## Runtime notes
+
+1. On DirectML, some PyTorch operators can fall back to CPU; this is expected and can reduce speed.
+2. Sequence dataset code intentionally uses contiguous arrays for safer tensor conversion.

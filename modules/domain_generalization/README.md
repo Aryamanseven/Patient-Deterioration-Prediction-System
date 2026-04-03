@@ -1,13 +1,16 @@
-# Domain Generalization (LODO) Module
+# Domain Generalization Module
 
-Ensures the model doesn't overfit to a specific hospital's recording practices and can generalize to unseen hospitals (Out-Of-Distribution performance).
+Runs leave-one-domain-out evaluation to estimate out-of-domain robustness.
 
-## Method
-- **Leave-One-Domain-Out (LODO) Validation:** If data contains patients from $N$ different hospitals or units, we train the model $N$ times. Each time we train on $N-1$ units and test strictly on the left-out unit.
-- This creates a massive penalty for algorithms that memorize silo-specific artifacts instead of true physiological deterioration signatures.
+## What it does
 
-## Artifacts Produced
-- `lodo_results.csv`: Table containing the PR-AUC and ROC-AUC for every left-out domain, plus the mean.
+- Repeats train/test by leaving one domain out each fold.
+- Reports PR-AUC and ROC-AUC by held-out domain.
 
-## Config
-Controlled via `modules.domain_generalization` in `default.yaml`. We need to specify the `domain_column`.
+## Primary artifact
+
+- lodo_results.csv
+
+## Config section
+
+- modules.domain_generalization

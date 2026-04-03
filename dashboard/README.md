@@ -1,6 +1,6 @@
 # Dashboard Folder
 
-This folder contains the Streamlit demonstration app.
+This folder contains the final Streamlit demonstration app for submission.
 
 ## Files
 
@@ -9,17 +9,18 @@ This folder contains the Streamlit demonstration app.
 
 ## Runtime dependency graph
 
-1. Reads run artifacts from `artifacts/run_*`.
-2. Uses project feature logic from `core/` for data shaping.
-3. Displays metrics and optional module outputs when present.
+1. Auto-loads the best verified run using `artifacts/evidence_latest_run.json`.
+2. Uses ensemble predictions from `artifacts/run_*/predictions.csv`.
+3. Reconstructs the exact validation split using `core/data_loader.py`.
+4. Displays final benchmark evidence from `artifacts/benchmark_final/` when available.
 
 ## What the dashboard is expected to show
 
-1. Ward-level risk overview.
-2. Patient-level deep-dive timelines.
-3. Clinical Action Board for triage decisions.
-4. FL and DG outputs when module artifacts exist.
-5. XAI outputs (SHAP/Captum) when generated.
+1. Executive ward risk overview from the best ensemble model.
+2. Patient-level deep-dive timeline (risk and vitals).
+3. Explainability from best-run SHAP outputs.
+4. Final benchmark deltas (ensemble vs TimeSFM proxy) from `benchmark_final`.
+5. Final-round submission checklist.
 
 ## Run
 
@@ -31,7 +32,7 @@ Run this command from repository root for correct relative paths.
 
 ## Dependency
 
-Dashboard quality depends on the latest run directory containing required artifacts.
+Dashboard requires a complete best run (`metrics.json`, `predictions.csv`) and dataset access.
 
 ## Clinical usage boundary
 

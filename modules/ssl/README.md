@@ -1,16 +1,22 @@
 # Self-Supervised Learning (SSL) Module
 
-This module implements self-supervised pre-training, giving our deep learning models a massive performance boost by learning the underlying structure of physiological data *before* seeing any labels.
+Implements masked sequence pretraining and SSL weight handoff.
 
-## Method: Masked Sequence Prediction
-Similar to BERT in NLP or masked autoencoders in vision.
-1. We take sliding windows of patient vitals.
-2. We randomly mask out `mask_ratio` (e.g., 15%) of the timesteps.
-3. A Transformer encoder attempts to reconstruct the missing continuous values.
-4. We compute MSE loss between predictions and the actual masked values.
+## What it does
 
-## Artifacts Produced
-- `ssl_encoder_weights.pt`: The initial weights that the main `TCNTransformer` or `LSTMAttention` model will load before supervised fine-tuning.
+1. Masks a fraction of sequence timesteps.
+2. Trains encoder to reconstruct masked values.
+3. Saves reusable SSL weights for downstream DL training.
 
-## Config
-Controlled via `modules.ssl` in `default.yaml`.
+## Current run behavior
+
+- In reuse-enabled profiles, SSL pretraining is skipped and existing weights are reused.
+- SSL weights are copied into each run folder for provenance.
+
+## Primary artifact
+
+- ssl_pretrained_tcntransformer.pt
+
+## Config section
+
+- modules.ssl

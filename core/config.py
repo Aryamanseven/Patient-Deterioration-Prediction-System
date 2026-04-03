@@ -7,10 +7,21 @@ No hardcoded values exist anywhere else in the codebase.
 from __future__ import annotations
 
 import sys
+import re
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+
+def get_seed(config: dict[str, Any], default: int = 42) -> int:
+    """Resolve seed from either legacy or current config keys."""
+    general = config.get("general", {})
+    seed_value = general.get("seed", general.get("random_seed", default))
+    try:
+        return int(seed_value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Invalid seed value: {seed_value}") from exc
 
 
 def load_config(config_path: str | Path) -> dict[str, Any]:
@@ -96,8 +107,13 @@ def get_output_dir(config: dict[str, Any]) -> Path:
     import datetime
     
     # Force artifacts/run_<id>/ structure
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = Path("artifacts") / f"run_{timestamp}"
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+
+    raw_run_name = str(config.get("general", {}).get("run_name", "")).strip()
+    safe_run_name = re.sub(r"[^A-Za-z0-9_-]+", "_", raw_run_name).strip("_")
+    run_suffix = f"_{safe_run_name}" if safe_run_name else ""
+
+    run_dir = Path("artifacts") / f"run_{timestamp}{run_suffix}"
     
     # Create required subdirectories
     (run_dir / "model").mkdir(parents=True, exist_ok=True)
@@ -105,9 +121,7 @@ def get_output_dir(config: dict[str, Any]) -> Path:
     (run_dir / "module_outputs").mkdir(parents=True, exist_ok=True)
     
     # Save a copy of the active config
-    import shutil
-    # We will copy the config in the caller script or just dump it
-    with open(run_dir / "config.yaml", "w") as f:
+    with open(run_dir / "config.yaml", "w", encoding="utf-8") as f:
         yaml.dump(config, f)
         
     return run_dir

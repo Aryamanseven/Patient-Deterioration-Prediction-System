@@ -7,6 +7,7 @@ for fast, secure production deployment in hospital settings.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import torch
 
@@ -24,30 +25,42 @@ def export_models_for_production(
     """
     Export all trained models to standardized deployment formats.
     """
-    params = config["modules"]["deployment"]
-    if not params.get("enabled", False):
+    params = config.get("modules", {}).get("deployment", {})
+    enabled = params.get("enabled", bool(params) or ("onnx_export" in params))
+    if not enabled:
         logger.info("Deployment exporter is disabled. Skipping.")
         return
+
+    export_catboost = params.get("export_catboost", True)
+    export_onnx = params.get("export_onnx", params.get("onnx_export", True))
         
     logger.info("Starting Medical Device Deployment Export...")
     
+    model_dir = output_dir / "model"
+    model_dir.mkdir(parents=True, exist_ok=True)
+    
     # 1. CatBoost Export
-    if params.get("export_catboost", True) and supervised_model is not None:
+    if export_catboost and supervised_model is not None:
         try:
-            cbm_path = output_dir / "model" / "model.cbm"
+            cbm_path = model_dir / "model.cbm"
             supervised_model.model.save_model(str(cbm_path))
             logger.info(f"Deployed supervised model to {cbm_path}")
         except Exception as e:
             logger.error(f"Failed to export CatBoost: {e}")
             
     # 2. PyTorch -> ONNX Export
-    if params.get("export_onnx", True) and dl_model is not None:
+    if export_onnx and dl_model is not None and dl_model.model is not None:
         try:
-            onnx_path = output_dir / "model" / "dl_model.onnx"
-            # We need dummy inputs for Torch tracing
-            dummy_seq = torch.randn(1, config["core"]["sequence_length"], dl_model.input_dim).to(dl_model.device)
-            dummy_static = torch.randn(1, dl_model.static_dim).to(dl_model.device)
-            dummy_mask = torch.ones(1, config["core"]["sequence_length"], dtype=torch.bool).to(dl_model.device)
+            onnx_path = model_dir / "dl_model.onnx"
+            
+            # Get dimensions from the actual model and config (not broken config["core"])
+            seq_len = config.get("modules", {}).get("deep_learning", {}).get("max_seq_len", 24)
+            input_dim = dl_model.model.input_proj.in_features
+            static_dim = dl_model.model.static_mlp[0].in_features
+            
+            dummy_seq = torch.randn(1, seq_len, input_dim).to(dl_model.device)
+            dummy_mask = torch.ones(1, seq_len, dtype=torch.bool).to(dl_model.device)
+            dummy_static = torch.randn(1, static_dim).to(dl_model.device)
             
             dl_model.model.eval()
             

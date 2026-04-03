@@ -1,14 +1,17 @@
-# Explainable AI (XAI) Module
+# XAI Module
 
-Trust is critical in clinical AI. This module ensures our model is transparent and clinically verifiable.
+Generates interpretability outputs for trained models.
 
-## Features
-- **SHAP (SHapley Additive exPlanations):** Global and local feature importances indicating *why* the model made a specific prediction.
-- **Clinical Alignment:** Compares the AI prediction drivers against established clinical scores (NEWS, MEWS, qSOFA) to prove we are discovering novel deterioration signatures, not just memorizing scores.
+## Outputs
 
-## Artifacts Produced
-- `shap_summary.png`: Global feature importance plot.
-- `top_features.csv`: The top 20 most important clinical features discovered by the model.
+- shap_summary.png
+- top_features.csv
 
-## Config
-Controlled via `modules.xai` in `default.yaml`.
+## Notes
+
+- Captum-related plots require optional dependencies.
+- If unavailable, pipeline logs a warning and continues.
+
+## Config section
+
+- modules.xai

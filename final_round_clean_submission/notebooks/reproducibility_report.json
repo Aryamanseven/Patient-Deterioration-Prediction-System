@@ -1,0 +1,12 @@
+{
+  "run_name": "run_20260401_095900_876038_stage2_fl10_from_recovered_dl",
+  "pass_flags": {
+    "has_run_name": true,
+    "labels_match": true,
+    "positive_pr_delta": true,
+    "all_required_files_present": true
+  },
+  "overall_pass": true,
+  "ensemble_pr_auc": 0.7389310185681417,
+  "benchmark_pr_delta": 0.6351167192687727
+}

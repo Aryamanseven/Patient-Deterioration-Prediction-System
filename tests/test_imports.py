@@ -11,7 +11,8 @@ def test_core_imports():
 
 def test_model_imports():
     from models import catboost_model, lstm_attention, model_registry, tcn_transformer, ensemble
-    assert hasattr(model_registry, "ModelRegistry")
+    assert hasattr(model_registry, "create_supervised_model")
+    assert hasattr(model_registry, "create_deep_model")
 
 def test_module_imports():
     from modules.ssl import pretrain

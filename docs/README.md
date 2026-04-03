@@ -40,6 +40,9 @@ This folder contains design, analysis, and competition strategy documents.
 12. BEST_OVERALL_NEXT_STEPS.md
    Execution checklist focused on reliability proof, innovation framing, and submission quality gates.
 
+13. TIMESFM_COMPETITIVE_STRATEGY.md
+   Evidence-first positioning and dominance strategy versus TimeSFM reference claims.
+
 13. JUDGE_3MIN_SCRIPT.md
    Competition-ready 3-minute speaking script for judges.
 

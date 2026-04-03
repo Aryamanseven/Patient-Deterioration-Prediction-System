@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import warnings
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -113,7 +114,14 @@ def run_captum_analysis(
         import torch
         from captum.attr import IntegratedGradients
         import matplotlib.pyplot as plt
-        import seaborn as sns
+
+        try:
+            import seaborn as sns
+            use_seaborn = True
+        except ImportError:
+            sns = None
+            use_seaborn = False
+            logger.info("Seaborn not installed; using matplotlib heatmap fallback.")
         
         device = dl_model_wrapper.device
         model = dl_model_wrapper.model
@@ -149,7 +157,16 @@ def run_captum_analysis(
         
         # Generate Heatmap
         plt.figure(figsize=(12, 8))
-        sns.heatmap(mean_attr.T, cmap="viridis", cbar_kws={'label': 'Mean Integrated Gradients'})
+        if use_seaborn:
+            sns.heatmap(
+                mean_attr.T,
+                cmap="viridis",
+                cbar_kws={"label": "Mean Integrated Gradients"},
+            )
+        else:
+            im = plt.imshow(mean_attr.T, aspect="auto", cmap="viridis", origin="lower")
+            cbar = plt.colorbar(im)
+            cbar.set_label("Mean Integrated Gradients")
         plt.title("Temporal Feature Importance (Captum Heatmap)")
         plt.xlabel("Time Step")
         plt.ylabel("Feature Index")
@@ -161,6 +178,6 @@ def run_captum_analysis(
         logger.info(f"Saved Captum temporal heatmap to {plot_path}")
         
     except ImportError:
-        logger.warning("Captum or Seaborn not installed. Skipping Deep Learning XAI plots.")
+        logger.warning("Captum or Matplotlib not installed. Skipping Deep Learning XAI plots.")
     except Exception as e:
         logger.error(f"Captum analysis failed: {e}")

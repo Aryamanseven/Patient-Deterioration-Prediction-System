@@ -1,0 +1,138 @@
+# RECOVERY CONFIG (FROM EXISTING SSL)
+# Goal:
+# - Reuse an existing SSL encoder checkpoint
+# - Retrain DL + CatBoost + Ensemble
+# - Enforce hardened saving into a fresh run folder
+# - Skip optional heavy modules for now (deployment can be done later)
+
+general:
+  seed: 42
+  python_version: "3.10"
+  device: "auto"
+  run_name: "retrain_from_ssl_strict_save"
+
+data:
+  path: "dataset/train.csv"
+  test_size: 0.2
+  max_rows: null
+
+features:
+  use_advanced: true
+  use_clinical_scores: true
+
+modules:
+  ssl:
+    enabled: true
+    # Reuse an existing SSL model instead of spending hours retraining SSL.
+    reuse_existing: true
+    # AUTO_LATEST_SSL searches artifacts/run_*/ssl_pretrained_tcntransformer.pt (newest first).
+    pretrained_weights_path: "AUTO_LATEST_SSL"
+    resume_from_checkpoint: false
+
+    # These are ignored when reuse_existing=true, but kept for compatibility.
+    pretext_task: "masked_prediction"
+    mask_ratio: 0.25
+    pretrain_epochs: 50
+    d_model: 128
+    num_heads: 8
+    num_layers: 4
+    learning_rate: 0.0005
+    batch_size: 256
+
+  supervised:
+    enabled: true
+    model_type: "catboost"
+    params:
+      # Focused on the historically strong region from submission winner naming.
+      iterations: 1450
+      learning_rate: 0.048
+      depth: 8
+      l2_leaf_reg: 5.0
+      min_child_samples: 30
+      subsample: 0.85
+      colsample_bylevel: 0.7
+      max_bin: 1024
+      grow_policy: "Lossguide"
+      max_leaves: 64
+      bootstrap_type: "Bernoulli"
+      loss_function: "Logloss"
+      eval_metric: "PRAUC"
+      auto_class_weights: "SqrtBalanced"
+      early_stopping_rounds: 500
+      task_type: "CPU"
+      use_best_model: true
+
+  deep_learning:
+    enabled: true
+    model_type: "tcn_transformer"
+    use_ssl_weights: true
+    epochs: 150
+    batch_size: 256
+    learning_rate: 0.0005
+    weight_decay: 0.05
+    max_seq_len: 24
+    d_model: 128
+    num_heads: 8
+    num_layers: 4
+    dropout: 0.3
+    patience: 25
+    # Set true + resume_checkpoint_path if you have a valid DL checkpoint to continue.
+    resume_from_checkpoint: false
+
+  ensemble:
+    enabled: true
+    method: "weighted_blend"
+    optimize_weights: true
+
+  xai:
+    enabled: false
+    shap_samples: 1000
+    gradcam: true
+    attention_maps: true
+    clinical_comparison: true
+
+  calibration:
+    enabled: false
+    n_bins: 10
+    method: "isotonic"
+
+  federated_learning:
+    enabled: false
+    clients: 5
+    rounds: 2
+    local_epochs: 3
+    aggregation: "fedavg"
+    partition_method: "dirichlet"
+    alpha: 0.25
+
+  differential_privacy:
+    enabled: false
+    target_epsilon: 8.0
+    target_delta: 1.0e-5
+    max_grad_norm: 1.0
+    noise_multiplier: 1.1
+    epochs: 10
+
+  domain_generalization:
+    enabled: false
+    method: "lodo"
+    domain_column: "admission_type"
+
+  cross_validation:
+    enabled: false
+    n_splits: 5
+
+  fairness:
+    enabled: false
+    protected_attributes:
+      - "gender"
+      - "age_group"
+      - "admission_type"
+
+  deployment:
+    enabled: false
+    export_catboost: true
+    export_onnx: true
+
+output:
+  base_dir: "outputs"

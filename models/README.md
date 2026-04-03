@@ -1,19 +1,33 @@
 # Models
 
-This directory contains the core model architectures and their wrappers.
-All models expose a consistent `fit()`, `predict_proba()`, and `save()` / `load()` interface to the pipeline.
+This folder contains all model implementations and ensemble fusion logic.
 
-## Files
+## Model components
 
-| File | Description | Output |
-|---|---|---|
-| `catboost_model.py` | Supervised baseline. Handles class imbalance and tabular dynamics. | CatBoostClassifier |
-| `lstm_attention.py` | Deep learning baseline. GRU/LSTM with temporal attention. | PyTorch Model |
-| `tcn_transformer.py` | The Championship Architecture. Multi-Scale TCN + Transformer. | PyTorch Model |
-| `ensemble.py` | Combines CatBoost and Deep Learning predictions. | Metalearner / Dict |
-| `model_registry.py` | Instantiates models based on YAML config strings. | Base Model |
+1. catboost_model.py
+	Supervised tabular learner for engineered feature matrix.
 
-## Design Rules
-1. **No Data Processing:** Models expect data to be fully processed by `core/data_loader.py`.
-2. **Config Driven:** Model hyper-parameters are passed via `**params` from the config file. No hardcoding.
-3. **Consistent Output:** All classification models must return probabilities between 0 and 1.
+2. tcn_transformer.py
+	Main deep sequence model used in current competition profiles.
+
+3. lstm_attention.py
+	Alternative sequence baseline kept for comparative experiments.
+
+4. ensemble.py
+	Learns weighted blend across CatBoost and deep model probabilities.
+
+5. model_registry.py
+	Factory for selecting model implementations from config.
+
+## Shared interface contract
+
+1. fit(...)
+2. predict_proba(...)
+3. save(...)
+4. load(...)
+
+## Competition behavior
+
+1. Core training path runs DL + CatBoost and saves hardened artifacts.
+2. Federated rounds run when federated_learning.enabled=true in config.
+3. Final risk score is the blended ensemble probability.

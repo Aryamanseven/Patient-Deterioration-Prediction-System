@@ -115,8 +115,9 @@ modules:
       - "age_group"
 
   deployment:
-    onnx_export: true
-    openvino_convert: false
+    enabled: true
+    export_catboost: true
+    export_onnx: true
 
 output:
   base_dir: "outputs"

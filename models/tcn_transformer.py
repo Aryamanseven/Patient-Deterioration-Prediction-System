@@ -10,6 +10,7 @@ Also supports initializing from Self-Supervised Learning (SSL) weights.
 from __future__ import annotations
 
 import math
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -20,6 +21,21 @@ from torch.utils.data import DataLoader, TensorDataset
 from core.logger import get_logger
 
 logger = get_logger("tcn_transformer")
+
+
+def _dml_safe_bce_with_logits(logits, targets, pos_weight=None):
+    """Manual BCEWithLogitsLoss that avoids aten::log_sigmoid_forward (unsupported on DML).
+    
+    Uses only clamp/abs/exp/log — all fully supported on DirectML.
+    Numerically stable: max(x,0) - x*y + log(1 + exp(-|x|))
+    """
+    max_val = torch.clamp(logits, min=0)
+    loss = max_val - logits * targets + torch.log(1.0 + torch.exp(-torch.abs(logits)))
+    if pos_weight is not None:
+        # Weight positive samples more heavily (same as PyTorch pos_weight behavior)
+        weight = 1.0 + (pos_weight - 1.0) * targets
+        loss = loss * weight
+    return loss.mean()
 
 
 class MultiScaleTemporalBlock(nn.Module):
@@ -132,14 +148,31 @@ class TCNTransformerNetwork(nn.Module):
         
         fused = self.scale_fusion(torch.cat([s3, s6], dim=-1))
         
+        pad_mask = ~(mask.bool())  # Ensure boolean after augmentation
+        
+        # Prevent ALL-padding sequences which cause the Transformer to output NaNs
+        all_masked = pad_mask.all(dim=-1)
+        if all_masked.any():
+            pad_mask_clone = pad_mask.clone()
+            pad_mask_clone[all_masked, 0] = False
+            pad_mask = pad_mask_clone
+            
         # Transformer (expects True for ignored padding tokens in src_key_padding_mask)
-        # Our mask is True for valid, False for padding. So we invert it.
-        encoded = self.transformer(fused, src_key_padding_mask=~mask)
+        encoded = self.transformer(fused, src_key_padding_mask=pad_mask)
         
         # Attention pooling instead of simple mean
         scores = self.pool_score(encoded).squeeze(-1)
-        scores = scores.masked_fill(~mask, float("-inf"))
+        
+        # DML-safe masking
+        scores = scores.masked_fill(pad_mask, -1e9)
         weights = torch.softmax(scores, dim=-1)
+        
+        # Safety: replace any NaN weights with uniform attention (DML edge case)
+        nan_rows = torch.isnan(weights.detach().cpu()).any(dim=-1, keepdim=True).to(weights.device)
+        if nan_rows.any():
+            uniform = torch.ones_like(weights) / weights.size(-1)
+            weights = torch.where(nan_rows, uniform, weights)
+        
         pooled = torch.bmm(weights.unsqueeze(1), encoded).squeeze(1)
         
         # Static features
@@ -217,6 +250,11 @@ class TCNTransformerModel:
     ) -> "TCNTransformerModel":
         from torch.utils.data import DataLoader, Subset
         torch.manual_seed(self.random_seed)
+
+        checkpoint_path = kwargs.get("checkpoint_path")
+        resume_from_checkpoint = kwargs.get("resume_from_checkpoint", True)
+        if checkpoint_path is not None:
+            checkpoint_path = Path(checkpoint_path)
         
         # Handle both raw datasets and Subset objects (e.g., from FL split)
         base_ds = train_dataset.dataset if isinstance(train_dataset, Subset) else train_dataset
@@ -248,8 +286,17 @@ class TCNTransformerModel:
             
         pw = (len(y_arr) - sum(y_arr)) / max(sum(y_arr), 1)
         pw = min(pw, 20.0)  # Clamp to prevent extreme imbalance blowing up loss
-        pos_weight = torch.tensor([pw], device=self.device)
-        criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+        pos_weight_val = torch.tensor([pw], device=self.device)
+        
+        # DML does NOT support aten::log_sigmoid_forward used by nn.BCEWithLogitsLoss.
+        # Use our manual implementation on DML; standard PyTorch on CUDA/CPU.
+        is_dml = "privateuseone" in str(self.device)
+        if is_dml:
+            def criterion(logits, targets):
+                return _dml_safe_bce_with_logits(logits, targets, pos_weight=pos_weight_val)
+            logger.info(f"Using DML-safe BCE loss (pos_weight={pw:.2f})")
+        else:
+            criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight_val)
         
         train_loader = self._prepare_data(train_dataset, True)
         val_loader = self._prepare_data(val_dataset, False)
@@ -277,9 +324,11 @@ class TCNTransformerModel:
             except ImportError:
                 pass
         
-        import os
-        from pathlib import Path
-        global_dl_ckpt = Path("artifacts") / "dl_checkpoint_latest.pt"
+        if checkpoint_path is None and not _is_fl_client:
+            checkpoint_path = Path("artifacts") / "dl_checkpoint_latest.pt"
+
+        if checkpoint_path is not None and not _is_fl_client:
+            checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
         
         best_val_loss = float('inf')
         patience_counter = 0
@@ -287,19 +336,49 @@ class TCNTransformerModel:
         start_epoch = 0
         
         # Auto-resume logic — ONLY for the main pipeline run, NOT for FL clients
-        if not _is_fl_client and global_dl_ckpt.exists():
-            logger.info(f"Auto-resuming DL from {global_dl_ckpt}")
+        if not _is_fl_client and resume_from_checkpoint and checkpoint_path is not None and checkpoint_path.exists():
+            logger.info(f"Auto-resuming DL from {checkpoint_path}")
             try:
-                checkpoint = torch.load(global_dl_ckpt, map_location=self.device, weights_only=False)
-                self.model.load_state_dict(checkpoint["model_state"])
-                optimizer.load_state_dict(checkpoint["optimizer_state"])
-                start_epoch = checkpoint["epoch"] + 1
-                best_val_loss = checkpoint.get("best_val_loss", float('inf'))
-                patience_counter = checkpoint.get("patience_counter", 0)
-                best_state = checkpoint.get("best_state", None)
-                if best_state is None:
+                checkpoint = torch.load(checkpoint_path, map_location=self.device, weights_only=False)
+
+                # Preferred checkpoint format saved during training.
+                if isinstance(checkpoint, dict) and isinstance(checkpoint.get("model_state"), dict):
+                    load_result = self.model.load_state_dict(checkpoint["model_state"], strict=False)
+                    if load_result.missing_keys or load_result.unexpected_keys:
+                        logger.warning(
+                            "DL resume loaded with key mismatches. "
+                            f"Missing={len(load_result.missing_keys)}, Unexpected={len(load_result.unexpected_keys)}"
+                        )
+
+                    optimizer_state = checkpoint.get("optimizer_state")
+                    if optimizer_state is not None:
+                        optimizer.load_state_dict(optimizer_state)
+
+                    start_epoch = checkpoint.get("epoch", -1) + 1
+                    best_val_loss = checkpoint.get("best_val_loss", float('inf'))
+                    patience_counter = checkpoint.get("patience_counter", 0)
+                    best_state = checkpoint.get("best_state", None)
+                    if best_state is None:
+                        best_state = {k: v.cpu() for k, v in self.model.state_dict().items()}
+
+                    logger.info(f"Resuming at DL Epoch {start_epoch+1}")
+
+                # Fallback checkpoint format: raw model.state_dict() only.
+                elif isinstance(checkpoint, dict) and checkpoint and all(torch.is_tensor(v) for v in checkpoint.values()):
+                    load_result = self.model.load_state_dict(checkpoint, strict=False)
+                    if load_result.missing_keys or load_result.unexpected_keys:
+                        logger.warning(
+                            "DL state_dict resume loaded with key mismatches. "
+                            f"Missing={len(load_result.missing_keys)}, Unexpected={len(load_result.unexpected_keys)}"
+                        )
+
+                    start_epoch = 0
+                    best_val_loss = float('inf')
+                    patience_counter = 0
                     best_state = {k: v.cpu() for k, v in self.model.state_dict().items()}
-                logger.info(f"Resuming at DL Epoch {start_epoch+1}")
+                    logger.info("Loaded raw state_dict checkpoint. Continuing fine-tuning with fresh optimizer state.")
+                else:
+                    logger.warning("Resume file is not a supported checkpoint format. Starting fresh.")
             except Exception as e:
                 logger.warning(f"Failed to load DL checkpoint ({e}). Starting fresh.")
         
@@ -312,10 +391,24 @@ class TCNTransformerModel:
                 
                 if augmenter is not None:
                     batch_x, batch_mask = augmenter(batch_x, batch_mask)
+                    batch_mask = batch_mask.bool()  # Ensure boolean after augmentation
                 
                 optimizer.zero_grad()
                 logits = self.model(batch_x, batch_mask, batch_static)
-                loss = criterion(logits, batch_y)
+                
+                # NaN safety net: if a DML edge-case produces NaN logits,
+                # skip this batch entirely to prevent poisoning model weights.
+                if torch.isnan(logits.detach().cpu()).any():
+                    logger.warning(f"NaN detected in logits — skipping batch.")
+                    continue
+                
+                loss = criterion(logits, batch_y.float())
+                
+                import math
+                if math.isnan(loss.item()):
+                    logger.warning(f"NaN loss — skipping batch.")
+                    continue
+                
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                 optimizer.step()
@@ -337,13 +430,13 @@ class TCNTransformerModel:
                     batch_mask, batch_static = batch_mask.to(self.device), batch_static.to(self.device)
                     
                     logits = self.model(batch_x, batch_mask, batch_static)
-                    loss = criterion(logits, batch_y)
+                    loss = criterion(logits, batch_y.float())
                     val_loss += loss.item() * batch_x.size(0)
             val_loss /= len(val_loader.dataset)
             
             # Extract clean state dict (unwrap Opacus _module prefix if present)
             raw_state = self.model.state_dict()
-            clean_state = {k.replace("_module.", ""): v for k, v in raw_state.items()}
+            clean_state = {k.replace("_module.", ""): v.detach().cpu() for k, v in raw_state.items()}
             
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
@@ -369,16 +462,20 @@ class TCNTransformerModel:
                     break
         
             # Save global checkpoint every epoch — only for main pipeline, not FL clients
-            if not _is_fl_client:
+            if not _is_fl_client and checkpoint_path is not None:
                 try:
-                    torch.save({
+                    checkpoint_payload = {
                         "epoch": epoch,
                         "model_state": clean_state,
-                        "optimizer_state": optimizer.state_dict(),
                         "best_val_loss": best_val_loss,
                         "patience_counter": patience_counter,
                         "best_state": best_state
-                    }, global_dl_ckpt)
+                    }
+
+                    if "privateuseone" not in str(self.device):
+                        checkpoint_payload["optimizer_state"] = optimizer.state_dict()
+
+                    torch.save(checkpoint_payload, checkpoint_path)
                 except Exception as e:
                     logger.warning(f"Failed to save DL checkpoint at epoch {epoch+1}: {e}")
         

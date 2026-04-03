@@ -1,13 +1,21 @@
-# Federated Learning (FL) Simulation Module
+# Federated Learning Module
 
-Proves our system's ability to maintain high performance while strictly adhering to data privacy laws (HIPAA/GDPR) through decentralized learning.
+Simulates federated training over client splits using FedAvg.
 
-## Method
-- Simulates multiple isolated hospital "silos" using Dirichlet data partitioning (to enforce real-world non-IID conditions).
-- Uses FedAvg to securely aggregate CatBoost tree structures (or deep learning weights) across hospitals without ever sharing raw patient records.
+## What it does
 
-## Artifacts Produced
-- `fl_rounds_history.json`: Validation performance progression across communication rounds.
+- Splits training data into client subsets.
+- Trains local deep models for local_epochs.
+- Aggregates model states with weighted averaging.
+- Tracks validation metrics per communication round.
+- Restores best-performing global state if later rounds degrade.
 
-## Config
-Controlled via `modules.federated_learning` in `default.yaml`.
+## Current scope
+
+- Applies to the deep model path.
+- Enabled when modules.federated_learning.enabled=true.
+- Enabled in default.yaml by default.
+
+## Primary artifact
+
+- fl_rounds_history.json

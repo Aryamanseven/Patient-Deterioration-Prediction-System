@@ -1,0 +1,38 @@
+{
+  "run_name": "run_20260401_095900_876038_stage2_fl10_from_recovered_dl",
+  "run_path": "artifacts\\run_20260401_095900_876038_stage2_fl10_from_recovered_dl",
+  "generated_utc": "2026-04-01T10:52:10.999435Z",
+  "timestamps": {
+    "run_last_modified": 1775038949.0202692,
+    "metrics_last_modified": 1775038949.01927,
+    "predictions_last_modified": 1775038949.2102733
+  },
+  "metrics": {
+    "schema": "nested",
+    "deep_learning_pr_auc": 0.6144604268579034,
+    "catboost_pr_auc": 0.7345626315623079,
+    "ensemble_pr_auc": 0.7389310185681417,
+    "deep_learning_roc_auc": 0.9253391725416746,
+    "catboost_roc_auc": 0.9641028631091244,
+    "ensemble_roc_auc": 0.9641627796236085
+  },
+  "config_highlights": {
+    "python_version": "3.10",
+    "run_name": "stage2_fl10_from_recovered_dl",
+    "federated_learning_enabled": true,
+    "domain_generalization_enabled": true,
+    "xai_enabled": true,
+    "ssl_reuse_existing": true,
+    "catboost_iterations": 1450,
+    "catboost_learning_rate": 0.048
+  },
+  "artifact_hashes_sha256": {
+    "metrics.json": "01a1fa4e1bf3718b927db6f7fbd2da636ddd26a78574cc6036bf5bf9ede50f93",
+    "predictions.csv": "5fab2442e96756ef4500765f8d2dea6e8702d48c671783f6fa353c0e4aa55472",
+    "model/model.cbm": "7e7d1e26a73f66b992814f70501fed324c216b7d5564e919f3c8152bf4169232",
+    "model/dl_model_final.pt": "8b27199739eb27bcb6bbfb4f3124bd89903ec9bebd0fbf7cc3182a19c9226274",
+    "model/ensemble.pkl": "8c251064cf2093020c37c95239ec0796c7bee73dbc5a77da8cf53c63b55cdd06",
+    "model/feature_columns.json": "1d3571cbc11ad483dabb9c1712c1fdf09c0c7508c230c49e165f43bc27b825b7",
+    "ssl_pretrained_tcntransformer.pt": "6507ef6352790204bac9ec2b3f4b69ed4254daf2ae52b704a591deb2bc84737e"
+  }
+}

@@ -31,6 +31,11 @@ artifacts/supervisor_python_*.tmp.log
 archive/
 
 # -----------------------
+# External upstream references
+# -----------------------
+modules/ssl/timesfm_upstream/
+
+# -----------------------
 # Local error dumps
 # -----------------------
 error.log

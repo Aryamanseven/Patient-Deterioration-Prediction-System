@@ -1,0 +1,13 @@
+fraction,metric,winner_model,winner_mean
+0.05,pr_auc,latest_ensemble,0.7311689973489428
+0.05,brier_score,latest_ensemble,0.023889980076347146
+0.1,pr_auc,latest_ensemble,0.7161917545312343
+0.1,brier_score,latest_ensemble,0.02454650141300807
+0.2,pr_auc,latest_ensemble,0.7171073480287071
+0.2,brier_score,latest_ensemble,0.024574212072050655
+0.3,pr_auc,latest_ensemble,0.7139268672172372
+0.3,brier_score,latest_ensemble,0.0247838750354388
+0.5,pr_auc,latest_ensemble,0.7109350539785944
+0.5,brier_score,latest_ensemble,0.025012332294270054
+0.8,pr_auc,latest_ensemble,0.7112312208360883
+0.8,brier_score,latest_ensemble,0.02498725882147638

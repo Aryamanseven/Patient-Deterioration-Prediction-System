@@ -34,7 +34,9 @@ def run_ssl_pretraining(
     config: dict,
     output_dir: Path,
     device: str,
-    seed: int = 42
+    seed: int = 42,
+    checkpoint_path: str | Path | None = None,
+    resume_from_checkpoint: bool = True,
 ) -> str:
     """
     Run masked prediction SSL on unlabelled data.
@@ -81,21 +83,33 @@ def run_ssl_pretraining(
     
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     
-    global_ckpt_path = Path("artifacts") / "ssl_checkpoint_latest.pt"
+    if checkpoint_path is None:
+        global_ckpt_path = output_dir / "model" / "ssl_checkpoint_latest.pt"
+    else:
+        global_ckpt_path = Path(checkpoint_path)
+    global_ckpt_path.parent.mkdir(parents=True, exist_ok=True)
+
     start_epoch = 0
     
     # Auto-resume logic
-    if global_ckpt_path.exists():
+    if resume_from_checkpoint and global_ckpt_path.exists():
         logger.info(f"Auto-resuming SSL from {global_ckpt_path}")
-        checkpoint = torch.load(global_ckpt_path, map_location=device_obj, weights_only=False)
-        base_model.load_state_dict(checkpoint["model_state"])
-        head.load_state_dict(checkpoint["head_state"])
-        optimizer.load_state_dict(checkpoint["optimizer_state"])
-        start_epoch = checkpoint["epoch"] + 1
-        logger.info(f"Resuming at Epoch {start_epoch+1}")
+        try:
+            checkpoint = torch.load(global_ckpt_path, map_location=device_obj, weights_only=False)
+            base_model.load_state_dict(checkpoint["model_state"])
+            head.load_state_dict(checkpoint["head_state"])
+            optimizer_state = checkpoint.get("optimizer_state")
+            if optimizer_state is not None:
+                optimizer.load_state_dict(optimizer_state)
+            start_epoch = checkpoint["epoch"] + 1
+            logger.info(f"Resuming at Epoch {start_epoch+1}")
+        except Exception as e:
+            logger.warning(f"Failed to resume SSL checkpoint ({e}). Starting fresh.")
+            start_epoch = 0
         
     for epoch in range(start_epoch, epochs):
         epoch_loss = 0.0
+        seen_samples = 0
         for batch_idx, (batch_x, _, batch_mask, batch_static) in enumerate(loader):
             if batch_idx % 10 == 0:
                 logger.info(f"SSL Epoch {epoch+1:02d} | Batch {batch_idx}/{len(loader)} | Active")
@@ -107,6 +121,9 @@ def run_ssl_pretraining(
             rand_mask = torch.rand(batch_x.shape[:2], device="cpu") < mask_ratio
             rand_mask = rand_mask.to(device_obj)
             actual_mask = rand_mask & batch_mask
+
+            if int(actual_mask.sum().item()) == 0:
+                continue
             
             corrupted_x = batch_x.clone()
             corrupted_x[actual_mask] = 0.0
@@ -126,18 +143,25 @@ def run_ssl_pretraining(
             optimizer.step()
             
             epoch_loss += loss.item() * batch_x.size(0)
+            seen_samples += batch_x.size(0)
             
-        epoch_loss /= len(dataset)
+        if seen_samples == 0:
+            logger.warning(f"SSL Epoch {epoch+1:02d} had zero masked samples. Skipping checkpoint update.")
+            continue
+
+        epoch_loss /= seen_samples
         logger.info(f"SSL Epoch {epoch+1:02d}/{epochs} completed | Final MSE: {epoch_loss:.4f}")
         
         # Save checkpoint globally
-        torch.save({
+        checkpoint_payload = {
             "epoch": epoch,
-            "model_state": base_model.state_dict(),
-            "head_state": head.state_dict(),
-            "optimizer_state": optimizer.state_dict(),
+            "model_state": {k: v.detach().cpu() for k, v in base_model.state_dict().items()},
+            "head_state": {k: v.detach().cpu() for k, v in head.state_dict().items()},
             "loss": epoch_loss
-        }, global_ckpt_path)
+        }
+        if "privateuseone" not in str(device_obj):
+            checkpoint_payload["optimizer_state"] = optimizer.state_dict()
+        torch.save(checkpoint_payload, global_ckpt_path)
         
     # Final save to the specific run directory as a finalized asset
     out_path = output_dir / "ssl_pretrained_tcntransformer.pt"
