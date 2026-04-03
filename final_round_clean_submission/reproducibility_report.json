@@ -1,0 +1,22 @@
+{
+  "title": "PS-2 Patient Deterioration Prediction System (Team ANC-052)",
+  "generated_utc": "2026-04-03T16:30:51.949945+00:00",
+  "run_name": "run_20260401_095900_876038_stage2_fl10_from_recovered_dl",
+  "seed": 42,
+  "threshold": 0.5,
+  "pass_flags": {
+    "required_files_present": true,
+    "modules_documented": true,
+    "trained_weights_loadable": true,
+    "ssl_checkpoint_present": true,
+    "ensemble_pr_auc_match": true,
+    "ensemble_roc_auc_match": true,
+    "benchmark_pr_delta_positive": true
+  },
+  "overall_pass": true,
+  "ensemble_pr_auc": 0.7389310185681417,
+  "ensemble_roc_auc": 0.9641627796236085,
+  "ensemble_brier": 0.02376242377028466,
+  "benchmark_pr_delta": 0.6351167192687727,
+  "ssl_note": "backend_incompatible_fallback"
+}

@@ -3,6 +3,9 @@
 This is the single active folder for final-round submission and demo assets.
 Use this folder only.
 
+Project title:
+PS-2 Patient Deterioration Prediction System (Team ANC-052)
+
 ## Package layout
 
 1. app/
@@ -20,9 +23,11 @@ Use this folder only.
    - benchmark_full_sample_metrics.csv
    - benchmark_subsample_summary.csv
    - benchmark_winner_by_fraction.csv
+   - run_config_stage2_fl10.yaml (final module configuration)
 
 4. presentation/
    - AesCodeNexus_Final_Round_Deck.pptx (active final deck)
+   - TEN_SLIDE_SUBMISSION_CONTENT.md (detailed 10-slide content)
 
 5. scripts/
    - FINAL_DEMO_VIDEO_SCRIPT.md (final presentation and demo narration)
@@ -32,11 +37,14 @@ Use this folder only.
 
 ## Reviewer quick path
 
-1. Open notebooks/Final_Round_Reproducible_Notebook.ipynb and run all cells.
-2. Confirm notebooks/reproducibility_report.json has overall_pass = true.
-3. Open evidence/benchmark_summary.json and verify benchmark deltas.
-4. Run app/app.py with Streamlit for the live demo.
-5. Use scripts/FINAL_DEMO_VIDEO_SCRIPT.md for the final recording.
+1. Read SUBMISSION.md for final portal-ready mapping.
+2. Open presentation/TEN_SLIDE_SUBMISSION_CONTENT.md and finalize exact 10-slide narrative.
+3. Open notebooks/Final_Round_Reproducible_Notebook.ipynb and run all cells.
+4. Confirm notebooks/reproducibility_report.json has overall_pass = true.
+5. Open evidence/benchmark_summary.json and verify benchmark deltas.
+6. Open evidence/run_config_stage2_fl10.yaml for full module coverage.
+7. Run app/app.py with Streamlit for the live demo.
+8. Use scripts/FINAL_DEMO_VIDEO_SCRIPT.md for the final recording.
 
 ## Runtime commands
 
